@@ -1,5 +1,7 @@
 # Federation API
 
+/!\ Ce projet est en cours de développement /!\
+
 Ce projet vise à construire un framework fédératif pour les plateformes de données de santé.
 
 Il est développé dans le contexte de l'Entrepôt de Données de Santé des Hôpitaux de Paris (AP-HP).
