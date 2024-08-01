@@ -9,6 +9,7 @@ class UserBase(BaseModel):
     firstname: str
     lastname: str
     email: EmailStr
+    role_id: Optional[str]
     expiration_date: Optional[datetime]
 
 

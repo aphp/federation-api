@@ -1,3 +1,4 @@
+
 # Federation API
 
 /!\ Ce projet est en cours de développement /!\
@@ -27,4 +28,4 @@ Contraintes imposées :
   * Toute information potentiellement sensible est chiffrée à l'aide d'un système similaire à mTLS : seules les plateformes clientes de cette API peuvent chiffrer et déchiffrer des informations sensibles contenues dans cette API. Cette API ne dispose d'aucune clé de chiffrement de la donnée stockée.
   * L'API est sécurisée au moyen d'un système d'authentification et chaque plateforme y accédant dispose de droits spécifiques
   * L'administrateur de l'API est le seul en capacité de délivrer à des plateformes des accès à cette API
-
+    

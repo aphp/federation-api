@@ -1,9 +1,7 @@
 import os
-import secrets
 from typing import Literal, Annotated, Any
 
 from pydantic import (
-    HttpUrl,
     PostgresDsn,
     computed_field,
     AnyUrl, BeforeValidator,
@@ -26,13 +24,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env",
                                       env_ignore_empty=True,
                                       extra="ignore")
-
     PROJECT_NAME: str
     PROJECT_VERSION: str
     PROJECT_DESC: str
 
     OPENAPI_URL: str
-    LOG_FILE: str
 
     JWT_SECRET_KEY: str     # secrets.token_urlsafe(32)
     JWT_ALGORITHM: str

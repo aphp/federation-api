@@ -2,16 +2,21 @@ from datetime import datetime
 
 import jwt
 from fastapi import Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from starlette import status
 
+import platform_registry.crud.users
 from platform_registry import models, crud
 from platform_registry.core import database
-from platform_registry.core.auth import TokenPayload, oauth2_scheme
+from platform_registry.core.security import TokenPayload
 from platform_registry.core.config import settings
 
 
-async def get_current_user(db: Session = Depends(database.get_db), token: str = Depends(oauth2_scheme)):
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+
+async def current_user(db: Session = Depends(database.get_db), token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                           detail="Could not validate credentials",
                                           headers={"WWW-Authenticate": "Bearer"})
@@ -23,19 +28,52 @@ async def get_current_user(db: Session = Depends(database.get_db), token: str = 
         token_data = TokenPayload(username=username)
     except jwt.InvalidTokenError:
         raise credentials_exception
-    user = crud.get_user(db, username=token_data.username)
+    user = platform_registry.crud.users.get_user(db, username=token_data.username)
     if user is None:
         raise credentials_exception
     return user
 
 
-def get_current_active_user(current_user: models.User = Depends(get_current_user)):
-    if current_user.expiration_date <= datetime.utcnow():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
-    return current_user
+def current_active_user(user: models.User = Depends(current_user)):
+    if user.expiration_date <= datetime.utcnow():
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive user")
+    return user
 
 
-# def get_current_active_admin(current_user: models.User = Depends(get_current_active_user)):
-#     if "admin" not in [role.name for role in current_user.roles]:
-#         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Not enough permissions")
-#     return current_user
+def registry_admin_user(user: models.User = Depends(current_active_user)):
+    if not user.role.is_registry_admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Not enough permissions: requires a Registry Admin account")
+    return user
+
+
+def platform_user(user: models.User = Depends(current_active_user)):
+    if not user.role.is_platform:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Not enough permissions: requires a Platform account")
+    return user
+
+
+def either_platform_or_admin(user: models.User = Depends(current_active_user)):
+    if not (user.role.is_platform or user.role.is_registry_admin):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Not enough permissions: requires a Platform or Registry Administrator account")
+    return user
+
+
+def get_regulatory_frameworks_reader(user: models.User = Depends(current_active_user)):
+    if not (user.role.is_platform or user.role.is_registry_admin):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Not enough permissions: requires a Platform or Registry Administrator account")
+    return user
+
+
+def get_regulatory_frameworks_manager(user: models.User = Depends(current_active_user)):
+    if not user.role.is_registry_admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Not enough permissions: requires a Registry Administrator account")
+    return user
+
+
+def projects_manager(user: models.User = Depends(platform_user)):
+    return user

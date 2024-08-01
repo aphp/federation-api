@@ -10,6 +10,10 @@ class RegulatoryFrameworkCreate(RegulatoryFrameworkBase):
     pass
 
 
+class RegulatoryFrameworkPatch(RegulatoryFrameworkBase):
+    pass
+
+
 class RegulatoryFramework(RegulatoryFrameworkBase):
     id: str
 

@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from platform_registry.core import database
-from platform_registry.core.auth import Token, authenticate_user, create_access_token
+from platform_registry.core.security import Token
 from platform_registry.core.config import settings
+from platform_registry.core.security import create_access_token, authenticate_user
 
 router = APIRouter()
 
@@ -23,6 +24,5 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
                             headers={"WWW-Authenticate": "Bearer"},
                             )
     access_token_expires = timedelta(minutes=settings.JWT_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(data={"sub": user.username},
-                                       expires_delta=access_token_expires)
-    return Token(access_token=access_token, token_type="bearer")
+    return create_access_token(data={"sub": user.username},
+                               expires_delta=access_token_expires)

@@ -12,6 +12,10 @@ class ProjectBase(BaseModel):
 
 
 class ProjectCreate(ProjectBase):
+    owner_platform_id: str
+
+
+class ProjectPatch(ProjectBase):
     pass
 
 
