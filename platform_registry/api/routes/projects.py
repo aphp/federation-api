@@ -17,14 +17,14 @@ async def get_projects(skip: int = 0,
     return projects.get_projects(db, projects_reader=user, skip=skip, limit=limit)
 
 
-@router.get("/{project_id}", response_model=schemas.Project)
+@router.get("/{project_id}", response_model=schemas.ProjectWithDetails)
 async def get_project(project_id: str,
                       db: Session = Depends(database.get_db),
                       user: schemas.User = Depends(deps.either_platform_or_admin)):
     project = projects.get_project(db, project_id=project_id)
     if project is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
-    if user.role.is_platform and project.platform_owner_id != user.platform_id:
+    if user.role.is_platform and user.platform_id != project.platform_owner_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Project does not belong to Platform")
     return project
 
@@ -54,4 +54,3 @@ async def patch_project(project_id: str,
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
     return projects.update_project(db=db, project=project, project_in=project_in)
-

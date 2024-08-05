@@ -55,6 +55,7 @@ exclude = [
 
 [tool.ruff.lint]
 select = ["E", "F"]
+ignore = ["F401"]
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN", "ARG", "BLE",
            "COM", "DJ", "DTZ", "EM", "ERA", "EXE", "FBT","ICN", "INP", "ISC", "NPY", "PD", "PGH",

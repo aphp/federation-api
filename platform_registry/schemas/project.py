@@ -1,6 +1,8 @@
 from datetime import date
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
+
+from platform_registry.schemas import RegulatoryFramework, Platform, Entity, User
 
 
 class ProjectBase(BaseModel):
@@ -24,3 +26,10 @@ class Project(ProjectBase):
 
     class ConfigDict:
         from_attributes = True
+
+
+class ProjectWithDetails(Project):
+    regulatory_frameworks: List[RegulatoryFramework]
+    entities_involved: List[Entity]
+    users_involved: List[User]
+    allowed_platforms: List[Platform]
