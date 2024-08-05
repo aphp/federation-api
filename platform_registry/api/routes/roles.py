@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from platform_registry.crud import roles
@@ -25,6 +26,13 @@ async def get_role(role_id: str, db: Session = Depends(database.get_db)):
 
 @router.post("/", response_model=schemas.Role)
 async def create_role(role: schemas.RoleCreate, db: Session = Depends(database.get_db)):
+    msg = "Role must be either Platform or Registry Admin"
     if not (role.is_platform or role.is_registry_admin):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Role must be either Platform or Registry Admin")
-    return roles.create_role(db=db, role=role)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+    if role.is_platform and role.is_registry_admin:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{msg}, not both")
+    try:
+        role = roles.create_role(db=db, role=role)
+    except IntegrityError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Role '{role.name}' already exists")
+    return role

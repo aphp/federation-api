@@ -28,7 +28,7 @@ async def create_user(user: schemas.UserCreate, db: Session = Depends(database.g
     if db_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=f"A user is already registered with the given email address <{user.email}>")
-    user_valid = users.check_user_against_linked_role(db=db, user=user)
+    user_valid, msg = users.check_user_against_linked_role(db=db, user=user)
     if not user_valid:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
     return users.create_user(db=db, user=user)

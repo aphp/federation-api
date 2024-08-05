@@ -6,14 +6,14 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from starlette import status
 
-import platform_registry.crud.users
-from platform_registry import models, crud
+from platform_registry.crud import users
+from platform_registry import models
 from platform_registry.core import database
 from platform_registry.core.security import TokenPayload
 from platform_registry.core.config import settings
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 async def current_user(db: Session = Depends(database.get_db), token: str = Depends(oauth2_scheme)):
@@ -28,7 +28,7 @@ async def current_user(db: Session = Depends(database.get_db), token: str = Depe
         token_data = TokenPayload(username=username)
     except jwt.InvalidTokenError:
         raise credentials_exception
-    user = platform_registry.crud.users.get_user(db, username=token_data.username)
+    user = users.get_user(db, username=token_data.username)
     if user is None:
         raise credentials_exception
     return user
@@ -41,21 +41,21 @@ def current_active_user(user: models.User = Depends(current_user)):
 
 
 def registry_admin_user(user: models.User = Depends(current_active_user)):
-    if not user.role.is_registry_admin:
+    if not (user.role and user.role.is_registry_admin):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Not enough permissions: requires a Registry Admin account")
     return user
 
 
 def platform_user(user: models.User = Depends(current_active_user)):
-    if not user.role.is_platform:
+    if not (user.role and user.role.is_platform):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Not enough permissions: requires a Platform account")
     return user
 
 
 def either_platform_or_admin(user: models.User = Depends(current_active_user)):
-    if not (user.role.is_platform or user.role.is_registry_admin):
+    if not (user.role and (not user.role.is_platform or user.role.is_registry_admin)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Not enough permissions: requires a Platform or Registry Administrator account")
     return user
@@ -68,12 +68,6 @@ def get_regulatory_frameworks_reader(user: models.User = Depends(current_active_
     return user
 
 
-def get_regulatory_frameworks_manager(user: models.User = Depends(current_active_user)):
-    if not user.role.is_registry_admin:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Not enough permissions: requires a Registry Administrator account")
+def regulatory_frameworks_manager(user: models.User = Depends(registry_admin_user)):
     return user
 
-
-def projects_manager(user: models.User = Depends(platform_user)):
-    return user

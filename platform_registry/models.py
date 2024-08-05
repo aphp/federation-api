@@ -26,7 +26,7 @@ class User(CommonColumnsMixin, Base):
     expiration_date = Column(DateTime)
     hashed_password = Column(String)
     role_id = Column(UUID, ForeignKey("role.id"))
-    platform_id = Column(UUID, ForeignKey("Platform.id"))
+    platform_id = Column(UUID, ForeignKey("platform.id"), nullable=True)
     role = relationship("Role", back_populates="users")
     platform = relationship("Platform", back_populates="user_account")
     assigned_projects = relationship("Project", secondary="project_membership_rel", back_populates="users_involved")
@@ -47,7 +47,7 @@ class Role(CommonColumnsMixin, Base):
     manage_projects_membership = Column(Boolean, nullable=False)
     manage_entities = Column(Boolean, nullable=False)
     users = relationship("User", back_populates="role")
-    __table_args__ = (UniqueConstraint("name", "is_registry_admin", "is_platform",
+    __table_args__ = (UniqueConstraint("is_registry_admin", "is_platform",
                                        name='unique_role_config'),)
 
 
@@ -58,22 +58,7 @@ class Platform(CommonColumnsMixin, Base):
     user_account = relationship("User", back_populates="platform")
     owned_projects = relationship("Project", back_populates="owner_platform")
     shared_projects = relationship("Project", secondary="platforms_shared_projects_rel", back_populates="allowed_platforms")
-
-
-class EntityType(CommonColumnsMixin, Base):
-    __tablename__ = "entity_type"
-
-    name = Column(String, index=True)
-    entities = relationship("Entity", back_populates="entity_type")
-
-
-class Entity(CommonColumnsMixin, Base):
-    __tablename__ = "entity"
-
-    name = Column(String, index=True)
-    entity_type_id = Column(UUID, ForeignKey("entity_type.id"))
-    entity_type = relationship("EntityType", back_populates="entities")
-    assigned_projects = relationship("Project", secondary="project_membership_rel", back_populates="entities_involved")
+    access_keys = relationship("AccessKey", back_populates="platform")
 
 
 class Project(CommonColumnsMixin, Base):
@@ -98,6 +83,33 @@ class RegulatoryFramework(CommonColumnsMixin, Base):
     name = Column(String, index=True)
     description_url = Column(String)
     projects = relationship("Project", secondary="projects_regulatory_frameworks_rel", back_populates="regulatory_frameworks")
+
+
+class EntityType(CommonColumnsMixin, Base):
+    __tablename__ = "entity_type"
+
+    name = Column(String, index=True)
+    entities = relationship("Entity", back_populates="entity_type")
+
+
+class Entity(CommonColumnsMixin, Base):
+    __tablename__ = "entity"
+
+    name = Column(String, index=True, nullable=False, unique=True)
+    entity_type_id = Column(UUID, ForeignKey("entity_type.id"))
+    entity_type = relationship("EntityType", back_populates="entities")
+    assigned_projects = relationship("Project", secondary="project_membership_rel", back_populates="entities_involved")
+
+
+class AccessKey(CommonColumnsMixin, Base):
+    __tablename__ = "access_key"
+
+    name = Column(String, index=True, nullable=False, unique=True)
+    key = Column(String, nullable=False, unique=True)
+    start_datetime = Column(DateTime, nullable=False)
+    end_datetime = Column(DateTime, nullable=False)
+    platform_id = Column(UUID, ForeignKey("platform.id"), nullable=False)
+    platform = relationship("Platform", back_populates="access_keys")
 
 
 class ProjectsRegulatoryFrameworksRel(CommonColumnsMixin, Base):

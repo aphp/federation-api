@@ -20,7 +20,9 @@ def create_user(db: Session, user: schemas.UserCreate):
                           firstname=user.firstname,
                           lastname=user.lastname,
                           expiration_date=user.expiration_date,
-                          hashed_password=get_password_hash(user.password))
+                          hashed_password=get_password_hash(user.password),
+                          role_id=user.role_id,
+                          platform_id=user.platform_id)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -50,10 +52,11 @@ def get_registry_admins_accounts(db: Session, skip: int = 0, limit: int = 10):
 def check_user_against_linked_role(db: Session, user: schemas.UserCreate):
     role = get_role(db, user.role_id)
     valid, msg = True, ""
-    if role.is_platform and user.platform_id is None:
-        valid = False
-        msg = "The user is a Platform account but no linked platform is provided"
-    if role.is_registry_admin and user.platform_id is not None:
-        valid = False
-        msg = "The user is a Registry Admin account but a linked platform is provided"
+    if role:
+        if role.is_platform and user.platform_id is None:
+            valid = False
+            msg = "The user is a Platform account but no linked platform is provided"
+        if role.is_registry_admin and user.platform_id is not None:
+            valid = False
+            msg = "The user is a Registry Admin account but a linked platform is provided"
     return valid, msg

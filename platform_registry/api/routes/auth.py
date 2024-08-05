@@ -14,7 +14,7 @@ from platform_registry.core.security import create_access_token, authenticate_us
 router = APIRouter()
 
 
-@router.post("/token")
+@router.post("/auth/login")
 async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
                 db: Session = Depends(database.get_db)) -> Token:
     user = authenticate_user(db, form_data.username, form_data.password)

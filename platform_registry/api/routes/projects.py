@@ -9,7 +9,7 @@ from platform_registry.core import database
 router = APIRouter()
 
 
-@router.get("/", response_model=list[schemas.Project])
+@router.get("/", response_model=list[schemas.ProjectWithDetails])
 async def get_projects(skip: int = 0,
                        limit: int = 10,
                        db: Session = Depends(database.get_db),
@@ -29,24 +29,24 @@ async def get_project(project_id: str,
     return project
 
 
-@router.post("/", response_model=schemas.Project)
+@router.post("/", response_model=schemas.ProjectWithDetails)
 async def create_project(project: schemas.ProjectCreate,
                          db: Session = Depends(database.get_db),
-                         projects_manager: schemas.User = Depends(deps.projects_manager)):
+                         projects_manager: schemas.User = Depends(deps.platform_user)):
     """
     only a platform user account can create projects
     """
-    if project.owner_platform_id != projects_manager.platform_id:
+    if project.owner_platform_id != str(projects_manager.platform_id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="Project owned by another platform")
     return projects.create_project(db=db, project=project)
 
 
-@router.patch("/{project_id}", response_model=schemas.Project)
+@router.patch("/{project_id}", response_model=schemas.ProjectWithDetails)
 async def patch_project(project_id: str,
                         project_in: schemas.ProjectPatch,
                         db: Session = Depends(database.get_db),
-                        projects_manager: schemas.User = Depends(deps.projects_manager)):
+                        projects_manager: schemas.User = Depends(deps.platform_user)):
     if project_in.owner_platform_id != projects_manager.platform_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="Project owned by another platform")
