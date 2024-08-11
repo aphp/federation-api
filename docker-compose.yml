@@ -1,0 +1,57 @@
+services:
+  db:
+    image: postgres:12
+    container_name: registry_db
+    restart: always
+    volumes:
+      - app-db-data:/var/lib/postgresql/data/pgdata
+    networks:
+      custom:
+        ipv4_address: 172.11.0.3
+    env_file:
+      - .env
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=platform_registry
+      - POSTGRES_USER=pguser
+      - POSTGRES_PASSWORD=pguserpsswd
+
+  backend:
+    image: registry-api:0.16
+    container_name: registry_api
+    restart: always
+    depends_on:
+      - db
+    networks:
+      custom:
+        ipv4_address: 172.11.0.4
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=172.11.0.3
+      - DB_PORT=5432
+      - DB_NAME=platform_registry
+      - DB_USER=pguser
+      - DB_PASSWORD=pguserpsswd
+
+# ------- coming soon
+#
+#  frontend:
+#    image: "platform_registry_ui:latest"
+#    restart: always
+#    networks:
+#      - default
+
+volumes:
+  app-db-data:
+
+networks:
+  custom:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.11.0.0/16
+          gateway: 172.11.0.1

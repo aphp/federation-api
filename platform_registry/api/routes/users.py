@@ -22,7 +22,7 @@ async def get_user(username: str, db: Session = Depends(database.get_db)):
     return db_user
 
 
-@router.post("/", response_model=schemas.User)
+@router.post("/", response_model=schemas.User, status_code=status.HTTP_201_CREATED)
 async def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     db_user = users.get_user(db, username=user.username)
     if db_user:

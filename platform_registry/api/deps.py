@@ -55,8 +55,8 @@ def platform_user(user: models.User = Depends(current_active_user)):
 
 
 def either_platform_or_admin(user: models.User = Depends(current_active_user)):
-    if not (user.role and (not user.role.is_platform or user.role.is_registry_admin)):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+    if not user.role or not (user.role.is_platform or user.role.is_registry_admin):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Not enough permissions: requires a Platform or Registry Administrator account")
     return user
 

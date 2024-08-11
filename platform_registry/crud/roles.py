@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
-from platform_registry import models, schemas
+from platform_registry.schemas import RoleCreate
+from platform_registry.models import Role
 
 DEFAULT_REGISTRY_ADMIN_ROLE_PROPS: dict[str, bool] = dict(manage_users=True,
                                                           manage_roles=True,
@@ -21,21 +22,21 @@ DEFAULT_PLATFORM_ROLE_PROPS: dict[str, bool] = dict(manage_users=False,
 
 
 def get_role(db: Session, role_id: str):
-    return db.query(models.Role).filter(models.Role.id == role_id).first()
+    return db.query(Role).filter(Role.id == role_id).first()
 
 
 def get_role_by_name(db: Session, name: str):
-    return db.query(models.Role).filter(models.Role.name == name).first()
+    return db.query(Role).filter(Role.name == name).first()
 
 
-def complete_role_initial_data(role: schemas.RoleCreate) -> dict:
+def complete_role_initial_data(role: RoleCreate) -> dict:
     properties = role.is_platform and DEFAULT_PLATFORM_ROLE_PROPS or DEFAULT_REGISTRY_ADMIN_ROLE_PROPS
     return {**role.model_dump(), **properties}
 
 
-def create_role(db: Session, role: schemas.RoleCreate):
+def create_role(db: Session, role: RoleCreate):
     completed_role = complete_role_initial_data(role=role)
-    db_role = models.Role(**completed_role)
+    db_role = Role(**completed_role)
     db.add(db_role)
     db.commit()
     db.refresh(db_role)
@@ -43,4 +44,4 @@ def create_role(db: Session, role: schemas.RoleCreate):
 
 
 def get_roles(db: Session, skip: int = 0, limit: int = 10):
-    return db.query(models.Role).offset(skip).limit(limit).all()
+    return db.query(Role).offset(skip).limit(limit).all()

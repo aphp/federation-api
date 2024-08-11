@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.operators import is_
 
@@ -60,3 +62,10 @@ def check_user_against_linked_role(db: Session, user: schemas.UserCreate):
             valid = False
             msg = "The user is a Registry Admin account but a linked platform is provided"
     return valid, msg
+
+
+def update_user_last_login(db: Session, user):
+    user.last_login = datetime.now()
+    db.commit()
+    db.refresh(user)
+    return user

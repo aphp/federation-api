@@ -24,7 +24,7 @@ async def get_role(role_id: str, db: Session = Depends(database.get_db)):
     return db_role
 
 
-@router.post("/", response_model=schemas.Role)
+@router.post("/", response_model=schemas.Role, status_code=status.HTTP_201_CREATED)
 async def create_role(role: schemas.RoleCreate, db: Session = Depends(database.get_db)):
     msg = "Role must be either Platform or Registry Admin"
     if not (role.is_platform or role.is_registry_admin):

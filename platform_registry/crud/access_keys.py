@@ -1,10 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Tuple
 
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from platform_registry import schemas, models
+from platform_registry.core.config import settings
 from platform_registry.utils import generate_key
 
 
@@ -20,15 +21,25 @@ def get_access_key(db: Session, key_id: str):
 
 
 def create_access_key(db: Session, access_key: schemas.AccessKeyCreate):
-    key = models.AccessKey(name=access_key.name,
+    now = datetime.now()
+    year_month = now.strftime('%Y%m')
+    key_name = f"{access_key.platform_id[:8]}_{year_month}_key"
+    key = models.AccessKey(name=key_name,
                            key=generate_key(),
-                           start_datetime=access_key.start_datetime,
-                           end_datetime=access_key.end_datetime,
+                           start_datetime=now,
+                           end_datetime=now + timedelta(days=settings.ACCESS_KEY_LIFESPAN_DAYS),
                            platform_id=access_key.platform_id)
     db.add(key)
     db.commit()
     db.refresh(key)
     return key
+
+
+def valid_key_exists(db: Session, platform_id: str) -> bool:
+    return db.query(models.AccessKey).filter(models.AccessKey.platform_id == platform_id,
+                                             models.AccessKey.start_datetime <= datetime.now(),
+                                             models.AccessKey.end_datetime > datetime.now())\
+                                     .first() is not None
 
 
 def check_access_key_validity(db: Session, start: datetime, end: datetime) -> Tuple[bool, str]:

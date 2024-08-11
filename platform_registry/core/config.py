@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     DB_USER: str
     DB_PASSWORD: str
 
+    ACCESS_KEY_LIFESPAN_DAYS: int
+
     @computed_field
     @property
     def database_url(self) -> PostgresDsn:

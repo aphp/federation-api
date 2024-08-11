@@ -1,5 +1,5 @@
 from datetime import date, datetime, timedelta
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_serializer
 from typing import Optional, List
 
 
@@ -45,6 +45,7 @@ class UserCreate(UserBase):
 class User(UserBase):
     id: str
     role: Optional[Role] = None
+    last_login: Optional[datetime]
 
     class ConfigDict:
         from_attributes = True
@@ -110,15 +111,56 @@ class ProjectBase(BaseModel):
 
 
 class ProjectCreate(ProjectBase):
-    owner_platform_id: str
+    framework_ids: List[str]
 
 
 class ProjectPatch(ProjectBase):
     pass
 
 
+class RecipientPlatformWithPermission(BaseModel):
+    platform_id: str
+    read: bool
+    write: bool
+
+
+class ProjectShare(BaseModel):
+    recipient_platform_ids: List[RecipientPlatformWithPermission]
+
+
 class Project(ProjectBase):
     id: str
+
+    class ConfigDict:
+        from_attributes = True
+
+
+class AccessKeyBase(BaseModel):
+    name: Optional[str]
+    start_datetime: Optional[datetime]
+    end_datetime: Optional[datetime]
+
+    @field_serializer('start_datetime')
+    def serialize_start_datetime(self, start_datetime: datetime, _info) -> str:
+        return datetime.strftime(start_datetime, "%m/%d/%Y, %H:%M:%S")
+
+    @field_serializer('end_datetime')
+    def serialize_end_datetime(self, end_datetime: datetime, _info) -> str:
+        return datetime.strftime(end_datetime, "%m/%d/%Y, %H:%M:%S")
+
+
+class AccessKeyCreate(BaseModel):
+    platform_id: str
+
+
+class AccessKeyPatch(AccessKeyBase):
+    pass
+
+
+class AccessKey(AccessKeyBase):
+    id: str
+    key: str
+    # platform: "Platform"
 
     class ConfigDict:
         from_attributes = True
@@ -134,37 +176,40 @@ class PlatformCreate(PlatformBase):
 
 class Platform(PlatformBase):
     id: str
-    shared_projects: List[Project]
+    owned_projects: Optional[List[Project]]
+    shared_projects: Optional[List[Project]]
+    access_keys: Optional[List[AccessKey]]
 
     class ConfigDict:
         from_attributes = True
 
 
 class ProjectWithDetails(Project):
-    regulatory_frameworks: List[RegulatoryFramework]
-    entities_involved: List[Entity]
-    users_involved: List[User]
+    owner_platform: Platform
     allowed_platforms: List[Platform]
+    regulatory_frameworks: List[RegulatoryFramework]
+    involved_entities: List[Entity]
+    involved_users: List[User]
+
+    @field_serializer('owner_platform')
+    def serialize_owner_platform(self, owner_platform: Platform, _info) -> str:
+        return owner_platform.name
+
+    @field_serializer('allowed_platforms')
+    def serialize_allowed_platforms(self, allowed_platforms: List[Platform], _info) -> List[str]:
+        return [p.name for p in allowed_platforms]
 
 
-class AccessKeyBase(BaseModel):
-    name: str
-    start_datetime: datetime
-    end_datetime: datetime
+class LoginResponse(BaseModel):
+    access_token: str
+    username: str
+    firstname: str
+    lastname: str
+    email: EmailStr
+    last_login: Optional[datetime]
+    role: Optional[str]
+    is_admin: bool
 
-
-class AccessKeyCreate(AccessKeyBase):
-    platform_id: str
-
-
-class AccessKeyPatch(AccessKeyBase):
-    pass
-
-
-class AccessKey(AccessKeyBase):
-    id: str
-    key: str
-    platform: Platform
-
-    class ConfigDict:
-        from_attributes = True
+    @field_serializer('last_login')
+    def serialize_last_login(self, last_login: datetime, _info) -> str:
+        return datetime.strftime(last_login, "%m/%d/%Y, %H:%M")

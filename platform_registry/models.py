@@ -13,7 +13,7 @@ class CommonColumnsMixin(object):
     id = Column(UUID(as_uuid=False), default=uuid4, primary_key=True, index=True, unique=True)
     created_at = Column(DateTime, nullable=True, server_default=func.now())
     modified_at = Column(DateTime, nullable=True, server_default=func.now(), onupdate=func.now())
-    deleted_at = Column(DateTime, nullable=True, server_default=func.now(), onupdate=func.now())
+    deleted_at = Column(DateTime, nullable=True)
 
 
 class User(CommonColumnsMixin, Base):
@@ -24,12 +24,13 @@ class User(CommonColumnsMixin, Base):
     lastname = Column(String, index=True)
     email = Column(String, unique=True, index=True)
     expiration_date = Column(DateTime)
+    last_login = Column(DateTime)
     hashed_password = Column(String)
     role_id = Column(UUID, ForeignKey("role.id"))
     platform_id = Column(UUID, ForeignKey("platform.id"), nullable=True)
     role = relationship("Role", back_populates="users")
     platform = relationship("Platform", back_populates="user_account")
-    assigned_projects = relationship("Project", secondary="project_membership_rel", back_populates="users_involved")
+    assigned_projects = relationship("Project", secondary="project_membership_rel", back_populates="involved_users")
 
 
 class Role(CommonColumnsMixin, Base):
@@ -54,7 +55,7 @@ class Role(CommonColumnsMixin, Base):
 class Platform(CommonColumnsMixin, Base):
     __tablename__ = "platform"
 
-    name = Column(String, unique=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
     user_account = relationship("User", back_populates="platform")
     owned_projects = relationship("Project", back_populates="owner_platform")
     shared_projects = relationship("Project", secondary="platforms_shared_projects_rel", back_populates="allowed_platforms")
@@ -73,8 +74,8 @@ class Project(CommonColumnsMixin, Base):
     owner_platform = relationship("Platform", back_populates="owned_projects")
     regulatory_frameworks = relationship("RegulatoryFramework", secondary="projects_regulatory_frameworks_rel", back_populates="projects")
     allowed_platforms = relationship("Platform", secondary="platforms_shared_projects_rel", back_populates="shared_projects")
-    entities_involved = relationship("Entity", secondary="project_membership_rel", back_populates="assigned_projects")
-    users_involved = relationship("User", secondary="project_membership_rel", back_populates="assigned_projects")
+    involved_entities = relationship("Entity", secondary="project_membership_rel", back_populates="assigned_projects")
+    involved_users = relationship("User", secondary="project_membership_rel", back_populates="assigned_projects")
 
 
 class RegulatoryFramework(CommonColumnsMixin, Base):
@@ -98,7 +99,7 @@ class Entity(CommonColumnsMixin, Base):
     name = Column(String, index=True, nullable=False, unique=True)
     entity_type_id = Column(UUID, ForeignKey("entity_type.id"))
     entity_type = relationship("EntityType", back_populates="entities")
-    assigned_projects = relationship("Project", secondary="project_membership_rel", back_populates="entities_involved")
+    assigned_projects = relationship("Project", secondary="project_membership_rel", back_populates="involved_entities")
 
 
 class AccessKey(CommonColumnsMixin, Base):
