@@ -25,8 +25,8 @@ class Settings(BaseSettings):
                                       env_ignore_empty=True,
                                       extra="ignore")
     PROJECT_NAME: str
-    PROJECT_VERSION: str
-    PROJECT_DESC: str
+    VERSION: str
+    DESCRIPTION: str
 
     OPENAPI_URL: str
 

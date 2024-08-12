@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:12
+    image: postgres:15.7
     container_name: registry_db
     restart: always
     volumes:
@@ -9,16 +9,18 @@ services:
       custom:
         ipv4_address: 172.11.0.3
     env_file:
-      - .env
+      - .docker.env
     environment:
       - PGDATA=/var/lib/postgresql/data/pgdata
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=platform_registry
-      - POSTGRES_USER=pguser
-      - POSTGRES_PASSWORD=pguserpsswd
+      - POSTGRES_PORT=${DB_PORT}
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
 
   backend:
-    image: registry-api:0.16
+    build:
+      context: .
+      dockerfile: ./Dockerfile
     container_name: registry_api
     restart: always
     depends_on:
@@ -29,21 +31,13 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      - .docker.env
     environment:
-      - DB_HOST=172.11.0.3
-      - DB_PORT=5432
-      - DB_NAME=platform_registry
-      - DB_USER=pguser
-      - DB_PASSWORD=pguserpsswd
-
-# ------- coming soon
-#
-#  frontend:
-#    image: "platform_registry_ui:latest"
-#    restart: always
-#    networks:
-#      - default
+      - DB_HOST=registry_db
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
 
 volumes:
   app-db-data:

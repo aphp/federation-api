@@ -4,9 +4,7 @@ set -e
 
 mkdir -p /app/_logs
 
-echo "********  PYTHONPATH 1 : $PYTHONPATH"
 export PYTHONPATH=$(pwd):$PYTHONPATH
-echo "********  PYTHONPATH 2 : $PYTHONPATH"
 
 source "$VIRTUAL_ENV"/bin/activate
 alembic upgrade head

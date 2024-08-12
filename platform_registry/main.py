@@ -6,8 +6,8 @@ from platform_registry.core.config import settings
 
 app = FastAPI(openapi_url=settings.OPENAPI_URL,
               title=settings.PROJECT_NAME,
-              description=settings.PROJECT_DESC,
-              version=settings.PROJECT_VERSION)
+              description=settings.DESCRIPTION,
+              version=settings.VERSION)
 
 if settings.BACKEND_CORS_ORIGINS:
     app.add_middleware(CORSMiddleware,
