@@ -28,7 +28,7 @@ async def current_user(db: Session = Depends(database.get_db), token: str = Depe
         token_data = TokenPayload(username=username)
     except jwt.InvalidTokenError:
         raise credentials_exception
-    user = users.get_user(db, username=token_data.username)
+    user = users.get_user_by_username(db, username=token_data.username)
     if user is None:
         raise credentials_exception
     return user

@@ -1,30 +1,31 @@
 from sqlalchemy.orm import Session
 
-from platform_registry import models, schemas
+from platform_registry.models import EntityType, Entity
+from platform_registry.schemas import EntityTypeCreate, EntityCreate
 
 
 def get_entity_type(db: Session, entity_type_id: str):
-    return db.query(models.EntityType).filter(models.EntityType.id == entity_type_id).first()
+    return db.query(EntityType).filter(EntityType.id == entity_type_id).first()
 
 
-def create_entity_type(db: Session, entity_type: schemas.EntityTypeCreate):
-    db_entity_type = models.EntityType(name=entity_type.name)
+def create_entity_type(db: Session, entity_type: EntityTypeCreate):
+    db_entity_type = EntityType(name=entity_type.name)
     db.add(db_entity_type)
     db.commit()
     db.refresh(db_entity_type)
     return db_entity_type
 
 
-def get_entity_types(db: Session, skip: int = 0, limit: int = 10):
-    return db.query(models.EntityType).offset(skip).limit(limit).all()
+def get_entity_types(db: Session):
+    return db.query(EntityType).all()
 
 
 def get_entity(db: Session, entity_id: str):
-    return db.query(models.Entity).filter(models.Entity.id == entity_id).first()
+    return db.query(Entity).filter(Entity.id == entity_id).first()
 
 
-def create_entity(db: Session, entity: schemas.EntityCreate):
-    db_entity = models.Entity(
+def create_entity(db: Session, entity: EntityCreate):
+    db_entity = Entity(
         name=entity.name,
         entity_type_id=entity.entity_type_id
     )
@@ -34,5 +35,5 @@ def create_entity(db: Session, entity: schemas.EntityCreate):
     return db_entity
 
 
-def get_entities(db: Session, skip: int = 0, limit: int = 10):
-    return db.query(models.Entity).offset(skip).limit(limit).all()
+def get_entities(db: Session):
+    return db.query(Entity).all()

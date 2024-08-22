@@ -1,21 +1,22 @@
 from sqlalchemy.orm import Session
 
-from platform_registry import models, schemas
+from platform_registry.models import Platform
+from platform_registry.schemas import User, PlatformCreate
 
 
-def get_platforms(db: Session, user: schemas.User, skip: int = 0, limit: int = 10):
+def get_platforms(db: Session, user: User):
     platforms_filter = []
     if user.role.is_platform:
-        platforms_filter.append(models.Platform.id == user.platform_id)
-    return db.query(models.Platform).filter(*platforms_filter).offset(skip).limit(limit).all()
+        platforms_filter.append(Platform.id == user.platform_id)
+    return db.query(Platform).filter(*platforms_filter).all()
 
 
 def get_platform(db: Session, platform_id: str):
-    return db.query(models.Platform).filter(models.Platform.id == platform_id).first()
+    return db.query(Platform).filter(Platform.id == platform_id).first()
 
 
-def create_platform(db: Session, platform: schemas.PlatformCreate):
-    db_platform = models.Platform(name=platform.name)
+def create_platform(db: Session, platform: PlatformCreate):
+    db_platform = Platform(name=platform.name)
     db.add(db_platform)
     db.commit()
     db.refresh(db_platform)

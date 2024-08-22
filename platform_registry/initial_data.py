@@ -1,7 +1,6 @@
 import logging
 from datetime import datetime, timedelta
 
-from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from models import User, Role

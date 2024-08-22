@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from platform_registry.api import deps
 from platform_registry.crud import users
 from platform_registry import schemas
 from platform_registry.core import database
@@ -10,25 +11,32 @@ router = APIRouter(dependencies=[Depends(registry_admin_user)])
 
 
 @router.get("/", response_model=list[schemas.User])
-async def get_users(skip: int = 0, limit: int = 10, db: Session = Depends(database.get_db)):
-    return users.get_all_users(db, skip=skip, limit=limit)
+async def get_users(db: Session = Depends(database.get_db),
+                    user: schemas.User = Depends(deps.either_platform_or_admin)):
+    if user.role.is_registry_admin:
+        return users.get_all_users(db=db)
+    return users.get_regular_users(db=db)
 
 
 @router.get("/{username}", response_model=schemas.User)
-async def get_user(username: str, db: Session = Depends(database.get_db)):
-    db_user = users.get_user(db, username=username)
+async def get_user(username: str,
+                   db: Session = Depends(database.get_db),
+                   user: schemas.User = Depends(deps.either_platform_or_admin)):
+    db_user = users.get_user_by_username(db=db, username=username, user=user)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return db_user
 
 
 @router.post("/", response_model=schemas.User, status_code=status.HTTP_201_CREATED)
-async def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
-    db_user = users.get_user(db, username=user.username)
+async def create_user(user_in: schemas.UserCreate,
+                      db: Session = Depends(database.get_db),
+                      user: schemas.User = Depends(deps.registry_admin_user)):
+    db_user = users.get_user_by_username(db=db, username=user_in.username, user=user)
     if db_user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f"A user is already registered with the given email address <{user.email}>")
-    user_valid, msg = users.check_user_against_linked_role(db=db, user=user)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER,
+                            detail=f"A user is already registered with the given email address <{user_in.email}>")
+    user_valid, msg = users.check_user_against_linked_role(db=db, user=user_in)
     if not user_valid:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
-    return users.create_user(db=db, user=user)
+    return users.create_user(db=db, user=user_in)

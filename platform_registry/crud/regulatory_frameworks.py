@@ -1,18 +1,19 @@
 from sqlalchemy.orm import Session
 
-from platform_registry import models, schemas
+from platform_registry.models import RegulatoryFramework
+from platform_registry.schemas import RegulatoryFrameworkCreate, RegulatoryFrameworkPatch
 
 
-def get_regulatory_frameworks(db: Session, skip: int = 0, limit: int = 10):
-    return db.query(models.RegulatoryFramework).offset(skip).limit(limit).all()
+def get_regulatory_frameworks(db: Session):
+    return db.query(RegulatoryFramework).all()
 
 
 def get_regulatory_framework(db: Session, framework_id: str):
-    return db.query(models.RegulatoryFramework).filter(models.RegulatoryFramework.id == framework_id).first()
+    return db.query(RegulatoryFramework).filter(RegulatoryFramework.id == framework_id).first()
 
 
-def create_regulatory_framework(db: Session, regulatory_framework: schemas.RegulatoryFrameworkCreate):
-    db_regulatory_framework = models.RegulatoryFramework(**regulatory_framework.model_dump())
+def create_regulatory_framework(db: Session, regulatory_framework: RegulatoryFrameworkCreate):
+    db_regulatory_framework = RegulatoryFramework(**regulatory_framework.model_dump())
     db.add(db_regulatory_framework)
     db.commit()
     db.refresh(db_regulatory_framework)
@@ -20,8 +21,8 @@ def create_regulatory_framework(db: Session, regulatory_framework: schemas.Regul
 
 
 def update_regulatory_framework(db: Session,
-                                framework: models.RegulatoryFramework,
-                                framework_in: schemas.RegulatoryFrameworkPatch):
+                                framework: RegulatoryFramework,
+                                framework_in: RegulatoryFrameworkPatch):
     framework_data = framework_in.model_dump()
     for key, value in framework_data.items():
         setattr(framework, key, value)

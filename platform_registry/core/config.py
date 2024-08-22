@@ -1,11 +1,7 @@
 import os
 from typing import Literal, Annotated, Any
 
-from pydantic import (
-    PostgresDsn,
-    computed_field,
-    AnyUrl, BeforeValidator,
-)
+from pydantic import PostgresDsn, computed_field, AnyUrl, BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic_core import MultiHostUrl
 
@@ -24,11 +20,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env",
                                       env_ignore_empty=True,
                                       extra="ignore")
-    PROJECT_NAME: str
-    VERSION: str
-    DESCRIPTION: str
+    PROJECT_NAME: str = "Platform Registry"
+    DESCRIPTION_MD: str = "**Platform Registry** API"
+    VERSION: str = "1.0-SNAPSHOT"
 
-    OPENAPI_URL: str
+    OPENAPI_URL: str = "/openapi.json"
 
     JWT_SECRET_KEY: str     # secrets.token_urlsafe(32)
     JWT_ALGORITHM: str
@@ -59,7 +55,7 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def server_host(self) -> str:
-        if self.ENVIRONMENT == "local":
+        if self.ENVIRONMENT == "dev":
             return f"http://{self.DOMAIN}"
         return f"https://{self.DOMAIN}"
 

@@ -12,13 +12,13 @@ router = APIRouter(dependencies=[Depends(registry_admin_user)])
 
 
 @router.get("/", response_model=list[schemas.Role])
-async def get_roles(skip: int = 0, limit: int = 10, db: Session = Depends(database.get_db)):
-    return roles.get_roles(db, skip=skip, limit=limit)
+async def get_roles(db: Session = Depends(database.get_db)):
+    return roles.get_roles(db)
 
 
 @router.get("/{role_id}", response_model=schemas.Role)
 async def get_role(role_id: str, db: Session = Depends(database.get_db)):
-    db_role = roles.get_role(db, role_id=role_id)
+    db_role = roles.get_role_by_id(db, role_id=role_id)
     if db_role is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
     return db_role

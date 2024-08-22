@@ -11,11 +11,9 @@ frameworks_router = APIRouter(prefix="/frameworks")
 
 
 @router.get("/", response_model=list[schemas.ProjectWithDetails])
-async def get_projects(skip: int = 0,
-                       limit: int = 10,
-                       db: Session = Depends(database.get_db),
+async def get_projects(db: Session = Depends(database.get_db),
                        user: schemas.User = Depends(deps.either_platform_or_admin)):
-    return projects.get_projects(db, projects_reader=user, skip=skip, limit=limit)
+    return projects.get_projects(db, projects_reader=user)
 
 
 @router.get("/{project_id}", response_model=schemas.ProjectWithDetails)
@@ -69,11 +67,9 @@ async def share_project(project_id: str,
 
 
 @frameworks_router.get("/", response_model=list[schemas.RegulatoryFramework])
-async def get_regulatory_frameworks(skip: int = 0,
-                                    limit: int = 10,
-                                    db: Session = Depends(database.get_db),
+async def get_regulatory_frameworks(db: Session = Depends(database.get_db),
                                     user: schemas.User = Depends(deps.either_platform_or_admin)):
-    return regulatory_frameworks.get_regulatory_frameworks(db, skip=skip, limit=limit)
+    return regulatory_frameworks.get_regulatory_frameworks(db)
 
 
 @frameworks_router.get("/{framework_id}", response_model=schemas.RegulatoryFramework)

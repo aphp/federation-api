@@ -21,12 +21,20 @@ DEFAULT_PLATFORM_ROLE_PROPS: dict[str, bool] = dict(manage_users=False,
                                                     manage_projects_membership=True)
 
 
-def get_role(db: Session, role_id: str):
+def get_role_by_id(db: Session, role_id: str):
     return db.query(Role).filter(Role.id == role_id).first()
 
 
 def get_role_by_name(db: Session, name: str):
     return db.query(Role).filter(Role.name == name).first()
+
+
+def get_main_admin_role(db: Session):
+    return db.query(Role).filter(Role.is_registry_admin).first()
+
+
+def get_main_platform_role(db: Session):
+    return db.query(Role).filter(Role.is_platform).first()
 
 
 def complete_role_initial_data(role: RoleCreate) -> dict:
@@ -43,5 +51,5 @@ def create_role(db: Session, role: RoleCreate):
     return db_role
 
 
-def get_roles(db: Session, skip: int = 0, limit: int = 10):
-    return db.query(Role).offset(skip).limit(limit).all()
+def get_roles(db: Session):
+    return db.query(Role).all()

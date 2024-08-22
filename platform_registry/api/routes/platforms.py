@@ -11,11 +11,9 @@ keys_router = APIRouter(prefix="/access-keys")
 
 
 @router.get("/", response_model=list[schemas.Platform])
-async def get_platforms(skip: int = 0,
-                        limit: int = 10,
-                        db: Session = Depends(database.get_db),
+async def get_platforms(db: Session = Depends(database.get_db),
                         user: schemas.User = Depends(deps.either_platform_or_admin)):
-    return platforms.get_platforms(db=db, user=user, skip=skip, limit=limit)
+    return platforms.get_platforms(db=db, user=user)
 
 
 @router.get("/{platform_id}", response_model=schemas.Platform)
@@ -31,40 +29,35 @@ async def create_platform(platform: schemas.PlatformCreate, db: Session = Depend
     return platforms.create_platform(db=db, platform=platform)
 
 
+@keys_router.get("/my-keys", response_model=list[schemas.AccessKey])
+async def get_platform_access_keys(db: Session = Depends(database.get_db),
+                                   user: schemas.User = Depends(deps.platform_user)):
+    return access_keys.get_platform_access_keys(db, keys_reader=user)
+
+
 @keys_router.get("/", response_model=list[schemas.AccessKey])
-async def get_access_keys(skip: int = 0,
-                          limit: int = 10,
-                          db: Session = Depends(database.get_db),
-                          user: schemas.User = Depends(deps.either_platform_or_admin)):
-    return access_keys.get_access_keys(db, keys_reader=user, skip=skip, limit=limit)
+async def get_access_keys(db: Session = Depends(database.get_db),
+                          user: schemas.User = Depends(deps.registry_admin_user)):
+    return access_keys.get_access_keys(db)
 
 
 @keys_router.get("/{key_id}", response_model=schemas.AccessKey)
 async def get_access_key(key_id: str,
                          db: Session = Depends(database.get_db),
-                         user: schemas.User = Depends(deps.either_platform_or_admin)):
+                         user: schemas.User = Depends(deps.registry_admin_user)):
     access_key = access_keys.get_access_key(db, key_id=key_id)
     if access_key is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Access key not found")
-    if user.role.is_platform and str(user.platform_id) != access_key.platform_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access key does not belong to Platform")
     return access_key
 
 
 @keys_router.post("/", response_model=schemas.AccessKey, status_code=status.HTTP_201_CREATED)
 async def create_access_key(access_key: schemas.AccessKeyCreate,
                             db: Session = Depends(database.get_db),
-                            user: schemas.User = Depends(deps.either_platform_or_admin)):
-    """
-    * a platform user account can create access keys for its own platform
-    * an admin user account can create them for all platforms
-    """
-    if user.role.is_platform and str(user.platform_id) != access_key.platform_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="You can not create access keys for other platforms")
+                            user: schemas.User = Depends(deps.registry_admin_user)):
     if access_keys.valid_key_exists(db=db, platform_id=access_key.platform_id):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Your platform has an ongoing valid access key")
+                            detail=f"This platform '{access_key.platform_id}' has an ongoing valid access key")
     return access_keys.create_access_key(db=db, access_key=access_key)
 
 
@@ -72,7 +65,7 @@ async def create_access_key(access_key: schemas.AccessKeyCreate,
 async def patch_access_key(key_id: str,
                            key_in: schemas.AccessKeyPatch,
                            db: Session = Depends(database.get_db),
-                           user: schemas.User = Depends(deps.either_platform_or_admin)):
+                           user: schemas.User = Depends(deps.registry_admin_user)):
     valid, msg = access_keys.check_access_key_validity(db=db,
                                                        start=key_in.start_datetime,
                                                        end=key_in.end_datetime)
@@ -81,8 +74,6 @@ async def patch_access_key(key_id: str,
     key = access_keys.get_access_key(db, key_id=key_id)
     if not key:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
-    if user.role.is_platform and str(user.platform_id) != key.platform_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This access key belongs to another platform")
     return access_keys.update_access_key(db=db, key=key, key_in=key_in)
 
 
