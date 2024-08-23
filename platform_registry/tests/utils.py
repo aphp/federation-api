@@ -5,8 +5,9 @@ from typing import Tuple, List
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from platform_registry.crud import users, roles, entities, platforms
-from platform_registry.schemas import EntityType, User, UserCreate, Role, RoleCreate, EntityTypeCreate, PlatformCreate, Entity, EntityCreate, Platform
+from platform_registry.crud import users, roles, entities, platforms, access_keys
+from platform_registry.schemas import EntityType, User, UserCreate, Role, RoleCreate, EntityTypeCreate, PlatformCreate, Entity, EntityCreate, \
+    Platform, AccessKey, AccessKeyCreate
 
 
 def random_lower_string() -> str:
@@ -69,6 +70,10 @@ def create_platform_user(db: Session) ->  Tuple[User, str]:
     return user, user_in.password
 
 
+def get_main_platform_user(db: Session) -> User:
+    return users.get_user_by_username(db=db, username="platform")
+
+
 def retrieve_all_entity_types(db: Session) -> List[EntityType]:
     return entities.get_entity_types(db=db)
 
@@ -101,3 +106,7 @@ def get_authorization_headers(client: TestClient, db: Session, for_admin: bool =
     token = login_response["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
     return headers
+
+def create_access_key(db: Session, platform_id: str):
+    key = AccessKeyCreate(platform_id=platform_id)
+    return access_keys.create_access_key(db=db, access_key=key)

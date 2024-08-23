@@ -4,10 +4,13 @@ from platform_registry.models import Platform
 from platform_registry.schemas import User, PlatformCreate
 
 
-def get_platforms(db: Session, user: User):
+def get_platforms(db: Session, user: User, to_share_project=False):
     platforms_filter = []
     if user.role.is_platform:
-        platforms_filter.append(Platform.id == user.platform_id)
+        if to_share_project:
+            platforms_filter.append(Platform.id != user.platform_id)
+        else:
+            platforms_filter.append(Platform.id == user.platform_id)
     return db.query(Platform).filter(*platforms_filter).all()
 
 

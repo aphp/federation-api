@@ -153,14 +153,14 @@ class AccessKeyCreate(BaseModel):
     platform_id: str
 
 
-class AccessKeyPatch(AccessKeyBase):
-    pass
+class AccessKeyPatch(BaseModel):
+    start_datetime: Optional[datetime]
+    end_datetime: Optional[datetime]
 
 
 class AccessKey(AccessKeyBase):
     id: str
     key: str
-    # platform: "Platform"
 
     class ConfigDict:
         from_attributes = True
