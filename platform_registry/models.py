@@ -134,6 +134,5 @@ class PlatformsSharedProjectsRel(CommonColumnsMixin, Base):
 
     platform_id = Column(UUID(as_uuid=False), ForeignKey("platform.id"), nullable=False, index=True)
     project_id = Column(UUID(as_uuid=False), ForeignKey("project.id"), nullable=False, index=True)
-    read = Column(Boolean, nullable=False)
-    write = Column(Boolean, nullable=False)
+    write = Column(Boolean, nullable=False, default=False)
 

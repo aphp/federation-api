@@ -42,7 +42,7 @@ async def create_platform(platform: schemas.PlatformCreate,
 @keys_router.get("/my-keys", response_model=list[schemas.AccessKey])
 async def get_platform_access_keys(db: Session = Depends(database.get_db),
                                    user: schemas.User = Depends(deps.platform_user)):
-    return access_keys.get_platform_access_keys(db=db, keys_reader=user)
+    return access_keys.get_platform_access_keys(db=db, user=user)
 
 
 @keys_router.get("/", response_model=list[schemas.AccessKey])
@@ -55,7 +55,7 @@ async def get_access_keys(db: Session = Depends(database.get_db),
 async def get_access_key(key_id: str,
                          db: Session = Depends(database.get_db),
                          user: schemas.User = Depends(deps.registry_admin_user)):
-    access_key = access_keys.get_access_key(db=db, key_id=key_id)
+    access_key = access_keys.get_access_key_by_id(db=db, key_id=key_id)
     if access_key is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Access key not found")
     return access_key
@@ -79,7 +79,7 @@ async def patch_access_key(key_id: str,
     valid, msg = access_keys.check_access_key_validity(key_in=key_in)
     if not valid:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
-    key = access_keys.get_access_key(db=db, key_id=key_id)
+    key = access_keys.get_access_key_by_id(db=db, key_id=key_id)
     if not key:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Access key not found")
     return access_keys.update_access_key(db=db, key=key, key_in=key_in)
@@ -89,7 +89,7 @@ async def patch_access_key(key_id: str,
 async def archive_access_key(key_id: str,
                              db: Session = Depends(database.get_db),
                              user: schemas.User = Depends(deps.registry_admin_user)):
-    key = access_keys.get_access_key(db=db, key_id=key_id)
+    key = access_keys.get_access_key_by_id(db=db, key_id=key_id)
     if not key:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Access key not found")
     return access_keys.archive_access_key(db=db, key=key)

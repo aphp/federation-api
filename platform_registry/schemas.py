@@ -115,12 +115,13 @@ class ProjectCreate(ProjectBase):
 
 
 class ProjectPatch(ProjectBase):
-    pass
+    code: Optional[str] = ""
+    name: Optional[str] = ""
+    framework_ids: Optional[List[str]] = []
 
 
 class RecipientPlatformWithPermission(BaseModel):
     platform_id: str
-    read: bool
     write: bool
 
 

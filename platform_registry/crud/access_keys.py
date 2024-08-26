@@ -13,12 +13,12 @@ def get_access_keys(db: Session):
     return db.query(AccessKey).all()
 
 
-def get_platform_access_keys(db: Session, keys_reader: User):
-    return db.query(AccessKey).filter(AccessKey.platform_id == keys_reader.platform_id)\
+def get_platform_access_keys(db: Session, user: User):
+    return db.query(AccessKey).filter(AccessKey.platform_id == user.platform_id)\
                               .all()
 
 
-def get_access_key(db: Session, key_id: str):
+def get_access_key_by_id(db: Session, key_id: str):
     return db.query(AccessKey).filter(AccessKey.id == key_id).first()
 
 

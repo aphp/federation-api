@@ -15,7 +15,10 @@ USER_DATA = {"username": random_email().split("@")[0],
 
 @pytest.fixture(scope='class')
 def sample_platform(db: Session) -> Platform:
-    return create_platform(db=db, name="Sample Platform")
+    p = create_platform(db=db, name="Sample Platform")
+    yield p
+    db.delete(p)
+    db.commit()
 
 
 class TestUsers:

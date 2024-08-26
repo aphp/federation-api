@@ -1,17 +1,18 @@
 import random
 import string
+from datetime import datetime, date, timedelta
 from typing import Tuple, List
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from platform_registry.crud import users, roles, entities, platforms, access_keys
+from platform_registry.crud import users, roles, entities, platforms, access_keys, projects
 from platform_registry.schemas import EntityType, User, UserCreate, Role, RoleCreate, EntityTypeCreate, PlatformCreate, Entity, EntityCreate, \
-    Platform, AccessKey, AccessKeyCreate
+    Platform, AccessKey, AccessKeyCreate, Project, ProjectCreate
 
 
-def random_lower_string() -> str:
-    return "".join(random.choices(string.ascii_lowercase, k=32))
+def random_lower_string(l: int = 32) -> str:
+    return "".join(random.choices(string.ascii_lowercase, k=l))
 
 
 def random_email() -> str:
@@ -20,7 +21,7 @@ def random_email() -> str:
 
 
 def get_or_create_admin_role(db: Session) -> Role:
-    admin_role = roles.get_main_platform_role(db=db)
+    admin_role = roles.get_main_admin_role(db=db)
     if admin_role:
         return admin_role
     role_in = RoleCreate(name="Registry Admin",
@@ -99,7 +100,7 @@ def get_authorization_headers(client: TestClient, db: Session, for_admin: bool =
     login_data = {"username": user.username,
                   "password": password,
                   }
-    response = client.post("/auth/login",
+    response = client.post(url="/auth/login",
                            data=login_data,
                            headers={'Content-Type': "application/x-www-form-urlencoded"})
     login_response = response.json()
@@ -110,3 +111,13 @@ def get_authorization_headers(client: TestClient, db: Session, for_admin: bool =
 def create_access_key(db: Session, platform_id: str):
     key = AccessKeyCreate(platform_id=platform_id)
     return access_keys.create_access_key(db=db, access_key=key)
+
+
+def create_project(db: Session, user: User) -> Project:
+    project_in = ProjectCreate(name=random_lower_string(l=10),
+                               code=random_lower_string(l=5),
+                               description="some project description",
+                               start_date=date.today(),
+                               end_date=date.today() + timedelta(days=30),
+                               framework_ids=[])
+    return projects.create_project(db, project_in, user)
