@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
 from models import User, Role
-from platform_registry.crud import roles, users
+from crud import roles, users
 from schemas import UserCreate, RoleCreate
 from core.database import get_db
 
