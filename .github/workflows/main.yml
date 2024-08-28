@@ -1,0 +1,120 @@
+name: main
+
+on:
+  pull_request:
+    branches:
+      - '*'
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+env:
+  PYTHON_VERSION: '3.12.5'
+  VIRTUAL_ENV: venv
+  JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+  DB_PORT: ${{ secrets.DB_PORT }}
+  DB_NAME: ${{ secrets.DB_NAME }}
+  DB_USER: ${{ secrets.DB_USER }}
+  JWT_ALGORITHM: ${{ secrets.JWT_ALGORITHM }}
+  JWT_TOKEN_EXPIRE_MINUTES: ${{ secrets.JWT_TOKEN_EXPIRE_MINUTES }}
+  BACKEND_CORS_ORIGINS: ${{ secrets.BACKEND_CORS_ORIGINS }}
+  ACCESS_KEY_LIFESPAN_DAYS: ${{ secrets.ACCESS_KEY_LIFESPAN_DAYS }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: install packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff safety
+      - name: Run linter
+        run: ruff check .
+      - name: Run safety check
+        run: safety check -i 70612
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - run: docker compose build
+      - run: docker compose down -v --remove-orphans
+      - run: docker compose up -d
+      - name: Run tests
+        run: docker compose exec backend bash ./scripts/test.sh
+      - run: docker compose down -v --remove-orphans
+      - name: Upload coverage HTML artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: coverage/htmlcov
+          retention-days: 7
+          overwrite: true
+      - name: Upload coverage XML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage/coverage.xml
+          retention-days: 7
+          overwrite: true
+
+  sonarcloud:
+    name: SonarCloud
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  publish:
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    needs: sonarcloud
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - run: docker compose up -d
+      - name: Retrieve version
+        run: |
+          VERSION=$(docker compose exec backend bash ./scripts/version.sh)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+      - run: docker compose down -v --remove-orphans
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ github.ref == 'refs/heads/main' && format('aphpid/federation-api:{0},aphpid/federation-api:latest',env.VERSION) || format('aphpid/federation-api:{0}',env.VERSION) }}

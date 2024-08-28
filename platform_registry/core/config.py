@@ -1,5 +1,5 @@
 import os
-from typing import Literal, Annotated, Any
+from typing import Annotated, Any
 
 from pydantic import PostgresDsn, computed_field, AnyUrl, BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -7,6 +7,7 @@ from pydantic_core import MultiHostUrl
 
 env = os.environ
 
+ENV_FILE = env.get('ENV', '') == "local" and f"{env.get('ENV_FILE')}" or None
 
 def parse_cors(v: Any) -> list[str] | str:
     if isinstance(v, str) and not v.startswith("["):
@@ -17,12 +18,12 @@ def parse_cors(v: Any) -> list[str] | str:
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env",
+    model_config = SettingsConfigDict(env_file=ENV_FILE,
                                       env_ignore_empty=True,
                                       extra="ignore")
     PROJECT_NAME: str = "Platform Registry"
     DESCRIPTION_MD: str = "**Platform Registry** API"
-    VERSION: str = "1.0-SNAPSHOT"
+    VERSION: str = "1.0-dev"
 
     OPENAPI_URL: str = "/openapi.json"
 
@@ -30,8 +31,6 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str
     JWT_TOKEN_EXPIRE_MINUTES: int
 
-    DOMAIN: str
-    ENVIRONMENT: Literal["dev", "production"]
     BACKEND_CORS_ORIGINS: Annotated[list[AnyUrl] | str, BeforeValidator(parse_cors)] = []
 
     DB_HOST: str
@@ -51,13 +50,5 @@ class Settings(BaseSettings):
                                   port=self.DB_PORT,
                                   username=self.DB_USER,
                                   password=self.DB_PASSWORD)
-
-    @computed_field
-    @property
-    def server_host(self) -> str:
-        if self.ENVIRONMENT == "dev":
-            return f"http://{self.DOMAIN}"
-        return f"https://{self.DOMAIN}"
-
 
 settings = Settings()

@@ -20,7 +20,7 @@ class TokenPayload(BaseModel):
     username: str | None = None
 
 
-def create_access_token(data: dict, expires_delta: timedelta = None) -> Token:
+def create_access_token(data: dict) -> Token:
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=settings.JWT_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})

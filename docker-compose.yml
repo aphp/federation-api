@@ -1,13 +1,10 @@
 services:
   db:
-    image: postgres:15.7
-    container_name: registry_db
+    image: postgres:14
+    container_name: pg_db
     restart: always
     volumes:
       - app-db-data:/var/lib/postgresql/data/pgdata
-    networks:
-      custom:
-        ipv4_address: 172.11.0.3
     env_file:
       - .docker.env
     environment:
@@ -25,27 +22,23 @@ services:
     restart: always
     depends_on:
       - db
-    networks:
-      custom:
-        ipv4_address: 172.11.0.4
     ports:
       - "8000:8000"
     env_file:
       - .docker.env
     environment:
-      - DB_HOST=registry_db
+      - DB_HOST=pg_db
       - DB_PORT=${DB_PORT}
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
+      - JWT_TOKEN_EXPIRE_MINUTES=${JWT_TOKEN_EXPIRE_MINUTES}
+      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
+      - ACCESS_KEY_LIFESPAN_DAYS=${ACCESS_KEY_LIFESPAN_DAYS}
+    volumes:
+      - ./coverage:/app/coverage
 
 volumes:
   app-db-data:
-
-networks:
-  custom:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.11.0.0/16
-          gateway: 172.11.0.1
