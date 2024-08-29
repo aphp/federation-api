@@ -59,19 +59,12 @@ jobs:
       - name: Run tests
         run: docker compose exec backend bash ./scripts/test.sh
       - run: docker compose down -v --remove-orphans
-      - name: Upload coverage HTML artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-html
-          path: coverage/htmlcov
-          retention-days: 7
-          overwrite: true
       - name: Upload coverage XML report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-xml
           path: coverage/coverage.xml
-          retention-days: 7
+          retention-days: 2
           overwrite: true
 
   sonarcloud:
