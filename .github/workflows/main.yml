@@ -83,6 +83,7 @@ jobs:
     steps:
       - env:
           VERSION: ${{ needs.test.outputs.version }}
+        run: echo "Project version, $VERSION"
 
       - uses: actions/checkout@v4
         with:
@@ -110,6 +111,7 @@ jobs:
     steps:
       - env:
           VERSION: ${{ needs.test.outputs.version }}
+        run: echo "Project version, $VERSION"
 
       - name: Checkout code
         uses: actions/checkout@v4
