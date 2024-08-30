@@ -101,7 +101,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.projectVersion=${{ env.VERSION }}
+            -Dsonar.projectVersion=$VERSION
             -Dsonar.python.coverage.reportPaths=coverage/coverage.xml
 
   publish:
@@ -131,4 +131,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: aphpid/federation-api:${{ env.VERSION }}
+          tags: aphpid/federation-api:$VERSION
