@@ -1,9 +1,12 @@
+import logging
 import os
 from typing import Annotated, Any
 
 from pydantic import PostgresDsn, computed_field, AnyUrl, BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic_core import MultiHostUrl
+
+logger = logging.getLogger(__name__)
 
 env = os.environ
 
@@ -44,6 +47,8 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def database_url(self) -> PostgresDsn:
+        for e in (self.DB_HOST, self.DB_NAME, self.DB_PORT, self.DB_USER, self.DB_PASSWORD):
+            logger.info(f"****** {e=} -- {type(e)}")
         return MultiHostUrl.build(scheme="postgresql+psycopg",
                                   host=self.DB_HOST,
                                   path=self.DB_NAME,
