@@ -83,7 +83,7 @@ jobs:
     steps:
       - env:
           VERSION: ${{ needs.test.outputs.version }}
-        run: echo "Project version, $VERSION"
+        run: echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - uses: actions/checkout@v4
         with:
@@ -101,7 +101,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.projectVersion=$VERSION
+            -Dsonar.projectVersion=${{ env.VERSION }}
             -Dsonar.python.coverage.reportPaths=coverage/coverage.xml
 
   publish:
@@ -111,7 +111,7 @@ jobs:
     steps:
       - env:
           VERSION: ${{ needs.test.outputs.version }}
-        run: echo "Project version, $VERSION"
+        run: echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -131,4 +131,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: aphpid/federation-api:$VERSION
+          tags: aphpid/federation-api:${{ env.VERSION }}
