@@ -35,7 +35,7 @@ class Settings(BaseSettings):
 
     DB_HOST: str
     DB_NAME: str
-    DB_PORT: int
+    DB_PORT: str
     DB_USER: str
     DB_PASSWORD: str
 
@@ -47,7 +47,7 @@ class Settings(BaseSettings):
         return MultiHostUrl.build(scheme="postgresql+psycopg",
                                   host=self.DB_HOST,
                                   path=self.DB_NAME,
-                                  port=self.DB_PORT,
+                                  port=int(self.DB_PORT),
                                   username=self.DB_USER,
                                   password=self.DB_PASSWORD)
 
