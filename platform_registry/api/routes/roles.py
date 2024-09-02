@@ -31,8 +31,11 @@ async def create_role(role: schemas.RoleCreate, db: Session = Depends(database.g
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
     if role.is_platform and role.is_registry_admin:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{msg}, not both")
+
+    role_type = role.is_platform and "Platform" or "Registry Admin"
     try:
         role = roles.create_role(db=db, role=role)
     except IntegrityError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Role '{role.name}' already exists")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"A role of type '{role_type}' has been previously added")
     return role

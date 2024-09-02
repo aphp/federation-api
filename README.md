@@ -1,5 +1,7 @@
 ![image](https://img.shields.io/badge/Python-3.12-blue/?color=blue&logo=python&logoColor=9cf)
 ![image](https://img.shields.io/badge/FastAPI-0.109-%2344b78b/?color=%2344b78b&logo=fastapi&logoColor=2344b78b)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=aphp_federation-api&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=aphp_federation-api)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=aphp_federation-api&metric=coverage)](https://sonarcloud.io/summary/new_code?id=aphp_federation-api)
 
 # Federation API
 
