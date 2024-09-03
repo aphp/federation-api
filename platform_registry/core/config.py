@@ -26,7 +26,7 @@ class Settings(BaseSettings):
                                       extra="ignore")
     PROJECT_NAME: str = "Platform Registry"
     DESCRIPTION_MD: str = "**Platform Registry** API"
-    VERSION: str = "1.0-dev"
+    VERSION: str = "1.1-dev"
 
     OPENAPI_URL: str = "/openapi.json"
 

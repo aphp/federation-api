@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from typing import Union
 
@@ -10,7 +11,7 @@ from platform_registry.schemas import RegularUserCreate, AdminUserCreate, Platfo
 
 
 ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "1234"
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
 
 
 def get_user_by_username(db: Session, username: str, user: User = None):
