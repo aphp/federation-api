@@ -35,7 +35,7 @@ async def current_user(db: Session = Depends(database.get_db), token: str = Depe
 
 
 def current_active_user(user: models.User = Depends(current_user)):
-    if user.expiration_date <= datetime.utcnow():
+    if user.expiration_date <= datetime.now():
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive user")
     return user
 

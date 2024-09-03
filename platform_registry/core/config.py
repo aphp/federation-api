@@ -1,5 +1,4 @@
 import logging
-import os
 from typing import Annotated, Any
 
 from pydantic import PostgresDsn, computed_field, AnyUrl, BeforeValidator
@@ -8,9 +7,6 @@ from pydantic_core import MultiHostUrl
 
 logger = logging.getLogger(__name__)
 
-env = os.environ
-
-ENV_FILE = env.get('ENV', '') == "local" and f"{env.get('ENV_FILE')}" or None
 
 def parse_cors(v: Any) -> list[str] | str:
     if isinstance(v, str) and not v.startswith("["):
@@ -21,7 +17,7 @@ def parse_cors(v: Any) -> list[str] | str:
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=ENV_FILE,
+    model_config = SettingsConfigDict(env_file=None,
                                       env_ignore_empty=True,
                                       extra="ignore")
     PROJECT_NAME: str = "Platform Registry"

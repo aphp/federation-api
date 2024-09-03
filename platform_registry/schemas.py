@@ -200,6 +200,10 @@ class PlatformCreate(PlatformBase):
     pass
 
 
+class PlatformRecipient(PlatformBase):
+    id: str
+
+
 class Platform(PlatformBase):
     id: str
     user_account: List[PlatformUser]
@@ -212,8 +216,8 @@ class Platform(PlatformBase):
 
     @field_serializer('user_account')
     def serialize_user_account(self, user_account: List[PlatformUser], _info) -> str:
-        user_account = user_account and user_account[0]
-        return f"{user_account.username}[{user_account.id}]"
+        user_account = user_account and user_account[0] or None
+        return user_account and f"{user_account.username}[{user_account.id}]" or "--"
 
 
 class ProjectWithDetails(Project):

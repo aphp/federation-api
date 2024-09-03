@@ -16,7 +16,7 @@ async def get_platforms(db: Session = Depends(database.get_db),
     return platforms.get_platforms(db=db, user=user)
 
 
-@router.get("/project-share", response_model=list[schemas.Platform])
+@router.get("/project-share", response_model=list[schemas.PlatformRecipient])
 async def get_platforms_to_share_project(db: Session = Depends(database.get_db),
                                          user: schemas.User = Depends(deps.platform_user)):
     return platforms.get_platforms(db=db, user=user, to_share_project=True)
