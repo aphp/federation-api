@@ -6,9 +6,9 @@ from sqlalchemy.orm import Session
 from starlette import status
 from starlette.testclient import TestClient
 
-from platform_registry.crud import access_keys
+from platform_registry.services import access_keys
 from platform_registry.models import User, AccessKey, Platform
-from platform_registry.tests.utils import create_access_key, create_platform
+from platform_registry.tests.utils import create_access_key, setup_new_platform
 
 
 @pytest.fixture(scope='function')
@@ -16,8 +16,9 @@ def sample_keys(db: Session) -> List[AccessKey]:
     n = 5
     keys = []
     for i in range(n):
-        platform = create_platform(db=db, name=f"Platform_with_key_{i}")
-        keys.append(create_access_key(db=db, platform_id=platform.id))
+        platform = setup_new_platform(db=db, name=f"Platform_with_key_{i}")
+        key = access_keys.get_platform_current_valid_key(db=db, platform_id=platform.id)
+        keys.append(key)
     yield keys
     for k in keys:
         db.delete(k)
@@ -27,10 +28,8 @@ def sample_keys(db: Session) -> List[AccessKey]:
 
 @pytest.fixture(scope='function')
 def sample_key(db: Session, platform_user: User) -> AccessKey:
-    key = create_access_key(db=db, platform_id=platform_user.platform_id)
+    key = access_keys.get_platform_current_valid_key(db=db, platform_id=platform_user.platform_id)
     yield key
-    db.delete(key)
-    db.commit()
 
 
 class TestAccessKeys:
@@ -68,7 +67,7 @@ class TestAccessKeys:
         response = client.get(url="/platforms/access-keys/", headers=admin_user_auth_headers)
         assert response.status_code == status.HTTP_200_OK
         content = response.json()
-        assert len(content) == len(sample_keys)
+        assert len(content) == len(sample_keys) + 1
 
     def test_success_get_access_key_by_id(self,
                                           client: TestClient,
@@ -85,6 +84,11 @@ class TestAccessKeys:
                                                      admin_user_auth_headers: dict,
                                                      sample_platform: Platform,
                                                      db: Session):
+        # delete existing key for platform
+        key = access_keys.get_platform_current_valid_key(db=db, platform_id=sample_platform.id)
+        db.delete(key)
+        db.commit()
+
         key_data = {"platform_id": sample_platform.id
                     }
         response = client.post(url="/platforms/access-keys/",
@@ -98,8 +102,7 @@ class TestAccessKeys:
         assert "start_datetime" in content
         assert "end_datetime" in content
         key = access_keys.get_access_key_by_id(db=db, key_id=content["id"])
-        db.delete(key)
-        db.commit()
+        assert key is not None
 
     def test_failure_create_access_keys_as_platform_user(self,
                                                          client: TestClient,

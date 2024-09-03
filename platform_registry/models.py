@@ -20,13 +20,13 @@ class User(CommonColumnsMixin, Base):
     __tablename__ = "user"
 
     username = Column(String, unique=True, index=True)
-    firstname = Column(String, index=True)
-    lastname = Column(String, index=True)
+    firstname = Column(String)
+    lastname = Column(String)
     email = Column(String, unique=True, index=True)
     expiration_date = Column(DateTime)
     last_login = Column(DateTime)
     hashed_password = Column(String)
-    role_id = Column(UUID(as_uuid=False), ForeignKey("role.id"))
+    role_id = Column(UUID(as_uuid=False), ForeignKey("role.id"), nullable=True)
     platform_id = Column(UUID(as_uuid=False), ForeignKey("platform.id"), nullable=True)
     role = relationship("Role", back_populates="users")
     platform = relationship("Platform", back_populates="user_account")

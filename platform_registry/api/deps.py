@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from starlette import status
 
-from platform_registry.crud import users
+from platform_registry.services import users
 from platform_registry import models
 from platform_registry.core import database
 from platform_registry.core.security import TokenPayload

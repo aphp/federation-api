@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from platform_registry.api import deps
-from platform_registry.crud import users
+from platform_registry.services import users
 from platform_registry import schemas
 from platform_registry.core import database
 from platform_registry.api.deps import registry_admin_user
@@ -29,14 +29,12 @@ async def get_user(username: str,
 
 
 @router.post("/", response_model=schemas.User, status_code=status.HTTP_201_CREATED)
-async def create_user(user_in: schemas.UserCreate,
+async def create_user(user_in: schemas.RegularUserCreate,
                       db: Session = Depends(database.get_db),
                       user: schemas.User = Depends(deps.registry_admin_user)):
+    # create only regular users by Registry Administrator
     db_user = users.get_user_by_username(db=db, username=user_in.username, user=user)
     if db_user:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER,
-                            detail=f"A user is already registered with the given email address <{user_in.email}>")
-    user_valid, msg = users.check_user_against_linked_role(db=db, user=user_in)
-    if not user_valid:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+                            detail=f"A user is already registered with the given username <{user_in.username}>")
     return users.create_user(db=db, user=user_in)

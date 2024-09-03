@@ -5,10 +5,10 @@ from fastapi.testclient import TestClient
 from fastapi import status
 from sqlalchemy.orm import Session
 
-from platform_registry.crud import users, regulatory_frameworks
+from platform_registry.services import users, regulatory_frameworks, access_keys
 from platform_registry.models import User, Project, PlatformsSharedProjectsRel, ProjectsRegulatoryFrameworksRel, Platform
-from platform_registry.schemas import UserCreate, RegulatoryFramework, RegulatoryFrameworkCreate
-from platform_registry.tests.utils import create_project, create_platform, random_lower_string, random_email, get_or_create_platform_role
+from platform_registry.schemas import RegularUserCreate, RegulatoryFramework, RegulatoryFrameworkCreate
+from platform_registry.tests.utils import create_project, setup_new_platform, random_lower_string, random_email, get_or_create_platform_role
 
 
 @pytest.fixture(scope='class')
@@ -16,7 +16,7 @@ def sample_projects(db: Session, platform_user: User) -> List[Project]:
     projects = []
     n = 5
     for i in range(n):
-        projects.append(create_project(db=db, user=platform_user))
+        projects.append(create_project(db=db, platform_id=platform_user.platform_id))
     yield projects
     for p in projects:
         db.delete(p)
@@ -25,16 +25,8 @@ def sample_projects(db: Session, platform_user: User) -> List[Project]:
 
 @pytest.fixture(scope='function')
 def shared_project(db: Session, platform_user: User) -> Project:
-    new_platform = create_platform(db=db, name=random_lower_string(l=10))
-    user_in = UserCreate(username=random_lower_string(l=5),
-                         firstname="Source",
-                         lastname="PLATFORM",
-                         email=random_email(),
-                         password=random_lower_string(),
-                         role_id=get_or_create_platform_role(db=db).id,
-                         platform_id=new_platform.id)
-    source_platform_user = users.create_user(db=db, user=user_in)
-    project = create_project(db=db, user=source_platform_user)
+    new_platform = setup_new_platform(db=db, name=random_lower_string(l=10))
+    project = create_project(db=db, platform_id=new_platform.id)
     project_share = PlatformsSharedProjectsRel(platform_id=platform_user.platform_id,
                                                project_id=project.id)
     db.add(project_share)
@@ -43,7 +35,8 @@ def shared_project(db: Session, platform_user: User) -> Project:
     yield project
     db.delete(project_share)
     db.delete(project)
-    db.delete(source_platform_user)
+    key = access_keys.get_platform_current_valid_key(db=db, platform_id=new_platform.id)
+    db.delete(key)
     db.delete(new_platform)
     db.commit()
 

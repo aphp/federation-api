@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from platform_registry.api import deps
-from platform_registry.crud import entities
+from platform_registry.services import entities
 from platform_registry import schemas
 from platform_registry.core import database
 

@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.operators import or_, and_
 
-from platform_registry.crud.regulatory_frameworks import get_regulatory_framework
 from platform_registry.models import Project, ProjectsRegulatoryFrameworksRel, PlatformsSharedProjectsRel
 from platform_registry.schemas import User, ProjectCreate, ProjectPatch, ProjectShare
 
@@ -19,9 +18,9 @@ def get_project_by_id(db: Session, project_id: str):
     return db.query(Project).filter(Project.id == project_id).first()
 
 
-def create_project(db: Session, project: ProjectCreate, user):
+def create_project(db: Session, project: ProjectCreate, platform_id: str):
     new_project = Project(**project.model_dump(exclude={"framework_ids"}),
-                          owner_platform_id=user.platform_id)
+                          owner_platform_id=platform_id)
     db.add(new_project)
     db.commit()
     for framework_id in project.framework_ids:

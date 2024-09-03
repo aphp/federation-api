@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime, timedelta
 from typing import Tuple
 
@@ -5,21 +6,31 @@ from sqlalchemy.orm import Session
 
 from platform_registry.core.config import settings
 from platform_registry.models import AccessKey
-from platform_registry.schemas import AccessKeyPatch, AccessKeyCreate, User
-from platform_registry.utils import generate_key
+from platform_registry.schemas import AccessKeyPatch, AccessKeyCreate
+
+
+def generate_key() -> str:
+    return secrets.token_urlsafe(32)
 
 
 def get_access_keys(db: Session):
     return db.query(AccessKey).all()
 
 
-def get_platform_access_keys(db: Session, user: User):
-    return db.query(AccessKey).filter(AccessKey.platform_id == user.platform_id)\
+def get_access_key_by_id(db: Session, key_id: str):
+    return db.query(AccessKey).filter(AccessKey.id == key_id).first()
+
+
+def get_platform_access_keys(db: Session, platform_id: str):
+    return db.query(AccessKey).filter(AccessKey.platform_id == platform_id)\
                               .all()
 
 
-def get_access_key_by_id(db: Session, key_id: str):
-    return db.query(AccessKey).filter(AccessKey.id == key_id).first()
+def get_platform_current_valid_key(db: Session, platform_id: str):
+    return db.query(AccessKey).filter(AccessKey.platform_id == platform_id,
+                                      AccessKey.start_datetime <= datetime.now(),
+                                      AccessKey.end_datetime > datetime.now())\
+                              .first()
 
 
 def create_access_key(db: Session, access_key: AccessKeyCreate):
@@ -35,13 +46,6 @@ def create_access_key(db: Session, access_key: AccessKeyCreate):
     db.commit()
     db.refresh(key)
     return key
-
-
-def valid_key_exists(db: Session, platform_id: str) -> bool:
-    return db.query(AccessKey).filter(AccessKey.platform_id == platform_id,
-                                      AccessKey.start_datetime <= datetime.now(),
-                                      AccessKey.end_datetime > datetime.now())\
-                              .first() is not None
 
 
 def check_access_key_validity(key_in: AccessKeyPatch) -> Tuple[bool, str]:
@@ -66,4 +70,3 @@ def archive_access_key(db: Session, key: AccessKey):
     db.commit()
     db.refresh(key)
     return key
-

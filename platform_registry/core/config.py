@@ -47,8 +47,6 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def database_url(self) -> PostgresDsn:
-        for e in (self.DB_HOST, self.DB_NAME, self.DB_PORT, self.DB_USER, self.DB_PASSWORD):
-            logger.info(f"****** {e=} -- {type(e)}")
         return MultiHostUrl.build(scheme="postgresql+psycopg",
                                   host=self.DB_HOST,
                                   path=self.DB_NAME,
@@ -57,3 +55,22 @@ class Settings(BaseSettings):
                                   password=self.DB_PASSWORD)
 
 settings = Settings()
+
+
+# add Platforms auth by access key
+# hash access keys ?
+# link the access key to the user linked to a platform
+# on login, check the received access key against keys in db
+"""
+admin logs in
+create platform
+generate access key
+admin creates a user of type platform linked to existing platform, previously created
+    this user does not need password for authentication
+    he will authenticate using the associated platform's access key
+
+admin creates regular users that would be associated with projects
+    these users have no role and are not linked to a platform
+    they cannot log in
+
+"""

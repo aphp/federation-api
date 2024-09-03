@@ -29,11 +29,11 @@ def get_role_by_name(db: Session, name: str):
     return db.query(Role).filter(Role.name == name).first()
 
 
-def get_main_admin_role(db: Session):
+def get_admin_role(db: Session):
     return db.query(Role).filter(Role.is_registry_admin).first()
 
 
-def get_main_platform_role(db: Session):
+def get_platform_role(db: Session):
     return db.query(Role).filter(Role.is_platform).first()
 
 

@@ -1,6 +1,10 @@
+import uuid
 from datetime import date, datetime, timedelta
-from pydantic import BaseModel, EmailStr, field_serializer
-from typing import Optional, List
+from pydantic import BaseModel, EmailStr, field_serializer, AfterValidator
+from typing import Optional, List, Annotated
+
+
+STR_UUID = Annotated[str, AfterValidator(lambda x: str(uuid.UUID(x, version=4)))]
 
 
 class RoleBase(BaseModel):
@@ -30,21 +34,42 @@ class Role(RoleBase):
 
 class UserBase(BaseModel):
     username: str
-    firstname: str
-    lastname: str
     email: EmailStr
     expiration_date: Optional[datetime] = datetime.now() + timedelta(days=30)
 
 
-class UserCreate(UserBase):
-    password: str
-    role_id: Optional[str] = None
-    platform_id: Optional[str] = None
+class RegularUserCreate(UserBase):
+    firstname: str
+    lastname: str
+
+
+class SystemUser(BaseModel):
+    """ represents users who can be authenticated in the system:
+        i.e: Registry admins + users of type 'Platform'
+    """
+    role_id: STR_UUID
+    hashed_password: str
+
+
+class AdminUserCreate(RegularUserCreate, SystemUser):
+    pass
+
+
+class PlatformUserCreate(UserBase, SystemUser):
+    platform_id: STR_UUID
 
 
 class User(UserBase):
     id: str
     role: Optional[Role] = None
+    last_login: Optional[datetime]
+
+    class ConfigDict:
+        from_attributes = True
+
+
+class PlatformUser(UserBase):
+    id: str
     last_login: Optional[datetime]
 
     class ConfigDict:
@@ -91,7 +116,7 @@ class EntityBase(BaseModel):
 
 
 class EntityCreate(EntityBase):
-    entity_type_id: str
+    entity_type_id: STR_UUID
 
 
 class Entity(EntityBase):
@@ -121,7 +146,7 @@ class ProjectPatch(ProjectBase):
 
 
 class RecipientPlatformWithPermission(BaseModel):
-    platform_id: str
+    platform_id: STR_UUID
     write: bool
 
 
@@ -151,7 +176,7 @@ class AccessKeyBase(BaseModel):
 
 
 class AccessKeyCreate(BaseModel):
-    platform_id: str
+    platform_id: STR_UUID
 
 
 class AccessKeyPatch(BaseModel):
@@ -177,12 +202,18 @@ class PlatformCreate(PlatformBase):
 
 class Platform(PlatformBase):
     id: str
+    user_account: List[PlatformUser]
     owned_projects: Optional[List[Project]]
     shared_projects: Optional[List[Project]]
     access_keys: Optional[List[AccessKey]]
 
     class ConfigDict:
         from_attributes = True
+
+    @field_serializer('user_account')
+    def serialize_user_account(self, user_account: List[PlatformUser], _info) -> str:
+        user_account = user_account and user_account[0]
+        return f"{user_account.username}[{user_account.id}]"
 
 
 class ProjectWithDetails(Project):
@@ -204,8 +235,8 @@ class ProjectWithDetails(Project):
 class LoginResponse(BaseModel):
     access_token: str
     username: str
-    firstname: str
-    lastname: str
+    firstname: Optional[str] = None
+    lastname: Optional[str] = None
     email: EmailStr
     last_login: Optional[datetime]
     role: Optional[str]

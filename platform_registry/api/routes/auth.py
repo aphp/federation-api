@@ -8,7 +8,7 @@ from starlette import status
 from platform_registry.schemas import LoginResponse
 from platform_registry.core import database
 from platform_registry.core.security import create_access_token, authenticate_user
-from platform_registry.crud import users
+from platform_registry.services import users
 
 router = APIRouter()
 

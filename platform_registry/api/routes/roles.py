@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from platform_registry.crud import roles
+from platform_registry.services import roles
 from platform_registry import schemas
 from platform_registry.api.deps import registry_admin_user
 from platform_registry.core import database

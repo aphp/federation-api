@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from platform_registry.crud import projects, regulatory_frameworks as reg_frameworks
+from platform_registry.services import projects, regulatory_frameworks as reg_frameworks
 from platform_registry import schemas
 from platform_registry.api import deps
 from platform_registry.core import database
@@ -37,7 +37,7 @@ async def create_project(project: schemas.ProjectCreate,
     """
     only a platform user account can create projects
     """
-    return projects.create_project(db=db, project=project, user=user)
+    return projects.create_project(db=db, project=project, platform_id=user.platform_id)
 
 
 @router.patch("/{project_id}", response_model=schemas.ProjectWithDetails)

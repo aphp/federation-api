@@ -10,7 +10,8 @@ from platform_registry.core import database
 from platform_registry.main import app
 from platform_registry.models import User, Platform
 from platform_registry.schemas import Role
-from platform_registry.tests.utils import get_authorization_headers, get_or_create_platform_role, get_main_platform_user, create_platform, \
+from platform_registry.services import access_keys
+from platform_registry.tests.utils import get_authorization_headers, get_or_create_platform_role, get_main_platform_user, setup_new_platform, \
     random_lower_string
 
 SQLALCHEMY_DATABASE_URL = "sqlite://"
@@ -71,7 +72,9 @@ def platform_user(db: Session) -> User:
 
 @pytest.fixture(scope='function')
 def sample_platform(db: Session) -> Platform:
-    p = create_platform(db=db, name=random_lower_string(l=15))
+    p = setup_new_platform(db=db, name=random_lower_string(l=15))
     yield p
+    key = access_keys.get_platform_current_valid_key(db=db, platform_id=p.id)
+    db.delete(key)
     db.delete(p)
     db.commit()

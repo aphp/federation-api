@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from platform_registry.api import deps
-from platform_registry.crud import platforms, access_keys
+from platform_registry.services import platforms, access_keys
 from platform_registry import schemas
 from platform_registry.core import database
 
@@ -26,7 +26,7 @@ async def get_platforms_to_share_project(db: Session = Depends(database.get_db),
 async def get_platform(platform_id: str,
                        db: Session = Depends(database.get_db),
                        user: schemas.User = Depends(deps.registry_admin_user)):
-    db_platform = platforms.get_platform(db=db, platform_id=platform_id)
+    db_platform = platforms.get_platform_by_id(db=db, platform_id=platform_id)
     if db_platform is None:
         raise HTTPException(status_code=404, detail="Platform not found")
     return db_platform
@@ -36,13 +36,13 @@ async def get_platform(platform_id: str,
 async def create_platform(platform: schemas.PlatformCreate,
                           db: Session = Depends(database.get_db),
                           user: schemas.User = Depends(deps.registry_admin_user)):
-    return platforms.create_platform(db=db, platform=platform)
+    return platforms.setup_platform(db=db, platform=platform)
 
 
 @keys_router.get("/my-keys", response_model=list[schemas.AccessKey])
 async def get_platform_access_keys(db: Session = Depends(database.get_db),
                                    user: schemas.User = Depends(deps.platform_user)):
-    return access_keys.get_platform_access_keys(db=db, user=user)
+    return access_keys.get_platform_access_keys(db=db, platform_id=user.platform_id)
 
 
 @keys_router.get("/", response_model=list[schemas.AccessKey])
@@ -65,7 +65,7 @@ async def get_access_key(key_id: str,
 async def create_access_key(access_key: schemas.AccessKeyCreate,
                             db: Session = Depends(database.get_db),
                             user: schemas.User = Depends(deps.registry_admin_user)):
-    if access_keys.valid_key_exists(db=db, platform_id=access_key.platform_id):
+    if access_keys.get_platform_current_valid_key(db=db, platform_id=access_key.platform_id) is not None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=f"This platform '{access_key.platform_id}' has an ongoing valid access key")
     return access_keys.create_access_key(db=db, access_key=access_key)

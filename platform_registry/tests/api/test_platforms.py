@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 
 from platform_registry.models import User
 from platform_registry.schemas import Platform
-from platform_registry.tests.utils import create_platform
+from platform_registry.services import access_keys
+from platform_registry.tests.utils import setup_new_platform
 
 
 @pytest.fixture(scope='class')
@@ -15,9 +16,11 @@ def sample_platforms(db: Session) -> List[Platform]:
     platforms = []
     n = 5
     for i in range(n):
-        platforms.append(create_platform(db=db, name=f"Platform_{i}"))
+        platforms.append(setup_new_platform(db=db, name=f"Platform_{i}"))
     yield platforms
     for p in platforms:
+        key = access_keys.get_platform_current_valid_key(db=db, platform_id=p.id)
+        db.delete(key)
         db.delete(p)
     db.commit()
 
@@ -65,6 +68,16 @@ class TestPlatforms:
         assert len(content) == len(sample_platforms)
 
 
+    def test_failure_creating_platform_as_platform_user(self,
+                                                        client: TestClient,
+                                                        platform_user_auth_headers: dict):
+        platform_data = {"name": "some platform"}
+        response = client.post(url="/platforms/",
+                               json=platform_data,
+                               headers=platform_user_auth_headers)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
     def test_success_create_platform_as_admin_user(self,
                                                    client: TestClient,
                                                    admin_user_auth_headers: dict):
@@ -75,12 +88,5 @@ class TestPlatforms:
         assert response.status_code == status.HTTP_201_CREATED
         content = response.json()
         assert "id" in content
-
-    def test_failure_creating_platform_as_platform_user(self,
-                                                        client: TestClient,
-                                                        platform_user_auth_headers: dict):
-        platform_data = {"name": "some platform"}
-        response = client.post(url="/platforms/",
-                               json=platform_data,
-                               headers=platform_user_auth_headers)
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert content["user_account"] is not None
+        assert len(content["access_keys"]) == 1
