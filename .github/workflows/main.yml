@@ -86,10 +86,6 @@ jobs:
           VERSION: ${{ needs.test.outputs.version }}
         run: echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - name: Download coverage report
         uses: actions/download-artifact@v4
         with:
@@ -104,6 +100,21 @@ jobs:
           args: >
             -Dsonar.projectVersion=${{ env.VERSION }}
             -Dsonar.python.coverage.reportPaths=coverage/coverage.xml
+
+      - name: Check quality gate
+        run: |
+          projectKey="aphp_federation-api"
+          status="PENDING"
+          while [ "$status" != "OK" ] && [ "$status" != "ERROR" ]; do
+            sleep 1
+            status=$(curl -s "https://sonarcloud.io/api/qualitygates/project_status?projectKey=$projectKey" \
+              | jq -r .projectStatus.status)
+            echo "Quality gate status: $status"
+          done
+          if [ "$status" == "ERROR" ]; then
+            echo "Quality gate failed"
+            exit 1
+          fi
 
   publish:
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
