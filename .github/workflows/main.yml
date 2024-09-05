@@ -11,17 +11,6 @@ on:
       - '*'
 env:
   PYTHON_VERSION: '3.12.5'
-  VIRTUAL_ENV: venv
-  JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
-  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-  DB_PORT: ${{ secrets.DB_PORT }}
-  DB_NAME: ${{ secrets.DB_NAME }}
-  DB_USER: ${{ secrets.DB_USER }}
-  JWT_ALGORITHM: ${{ secrets.JWT_ALGORITHM }}
-  JWT_TOKEN_EXPIRE_MINUTES: ${{ secrets.JWT_TOKEN_EXPIRE_MINUTES }}
-  BACKEND_CORS_ORIGINS: ${{ secrets.BACKEND_CORS_ORIGINS }}
-  ACCESS_KEY_LIFESPAN_DAYS: ${{ secrets.ACCESS_KEY_LIFESPAN_DAYS }}
-  ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
 
 jobs:
   lint:
@@ -47,6 +36,18 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.retrieve_version.outputs.version }}
+    env:
+      VIRTUAL_ENV: venv
+      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      JWT_ALGORITHM: ${{ secrets.JWT_ALGORITHM }}
+      JWT_TOKEN_EXPIRE_MINUTES: ${{ secrets.JWT_TOKEN_EXPIRE_MINUTES }}
+      BACKEND_CORS_ORIGINS: ${{ secrets.BACKEND_CORS_ORIGINS }}
+      ACCESS_KEY_LIFESPAN_DAYS: ${{ secrets.ACCESS_KEY_LIFESPAN_DAYS }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -82,9 +83,16 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - env:
           VERSION: ${{ needs.test.outputs.version }}
-        run: echo "VERSION=$VERSION" >> $GITHUB_ENV
+        run: |
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          PROJECTKEY=$(sed -n 's/^sonar.projectKey=\(.*\)/\1/p' ./sonar-project.properties)
+          echo "PROJECTKEY=$PROJECTKEY" >> $GITHUB_ENV
 
       - name: Download coverage report
         uses: actions/download-artifact@v4
@@ -103,11 +111,9 @@ jobs:
 
       - name: Check quality gate
         run: |
-          projectKey="aphp_federation-api"
           status="PENDING"
           while [ "$status" != "OK" ] && [ "$status" != "ERROR" ]; do
-            sleep 1
-            status=$(curl -s "https://sonarcloud.io/api/qualitygates/project_status?projectKey=$projectKey" \
+            status=$(curl -s "https://sonarcloud.io/api/qualitygates/project_status?projectKey=${{ env.PROJECTKEY }}" \
               | jq -r .projectStatus.status)
             echo "Quality gate status: $status"
           done
