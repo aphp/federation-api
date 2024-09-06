@@ -11,20 +11,15 @@ from platform_registry.core import database
 router = APIRouter(dependencies=[Depends(registry_admin_user)])
 
 
-@router.get("/", response_model=list[schemas.Role])
+@router.get(path="/", response_model=list[schemas.Role],
+            description="Returns mainly two major roles: `Registry Admin` and `Platform`")
 async def get_roles(db: Session = Depends(database.get_db)):
     return roles.get_roles(db)
 
 
-@router.get("/{role_id}", response_model=schemas.Role)
-async def get_role(role_id: str, db: Session = Depends(database.get_db)):
-    db_role = roles.get_role_by_id(db, role_id=role_id)
-    if db_role is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
-    return db_role
-
-
-@router.post("/", response_model=schemas.Role, status_code=status.HTTP_201_CREATED)
+@router.post(path="/", response_model=schemas.Role, status_code=status.HTTP_201_CREATED,
+             description="Two roles are expected to be created: `Registry Admin` and `Platform`. "
+                         "No further roles are allowed to be created")
 async def create_role(role: schemas.RoleCreate, db: Session = Depends(database.get_db)):
     msg = "Role must be either Platform or Registry Admin"
     if not (role.is_platform or role.is_registry_admin):

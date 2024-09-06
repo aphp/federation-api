@@ -2,39 +2,49 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from platform_registry.api import deps
+from platform_registry.models import User
 from platform_registry.services import users
 from platform_registry import schemas
 from platform_registry.core import database
-from platform_registry.api.deps import registry_admin_user
 
-router = APIRouter(dependencies=[Depends(registry_admin_user)])
+regular_users_router = APIRouter(prefix="/regular")
+system_users_router = APIRouter(prefix="/system")
 
 
-@router.get("/", response_model=list[schemas.User])
+@regular_users_router.get(path="/", response_model=list[schemas.RegularUser],
+                          summary="List all users who may be assigned as members and work on projects")
 async def get_users(db: Session = Depends(database.get_db),
-                    user: schemas.User = Depends(deps.either_platform_or_admin)):
-    if user.role.is_registry_admin:
-        return users.get_all_users(db=db)
+                    user: User = Depends(deps.either_platform_or_admin)):
     return users.get_regular_users(db=db)
 
 
-@router.get("/{username}", response_model=schemas.User)
-async def get_user(username: str,
-                   db: Session = Depends(database.get_db),
-                   user: schemas.User = Depends(deps.either_platform_or_admin)):
-    db_user = users.get_user_by_username(db=db, username=username, user=user)
-    if db_user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return db_user
-
-
-@router.post("/", response_model=schemas.User, status_code=status.HTTP_201_CREATED)
+@regular_users_router.post(path="/", response_model=schemas.RegularUser, status_code=status.HTTP_201_CREATED)
 async def create_user(user_in: schemas.RegularUserCreate,
                       db: Session = Depends(database.get_db),
-                      user: schemas.User = Depends(deps.registry_admin_user)):
-    # create only regular users by Registry Administrator
+                      user: User = Depends(deps.either_platform_or_admin)):
     db_user = users.get_user_by_username(db=db, username=user_in.username, user=user)
     if db_user:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER,
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=f"A user is already registered with the given username <{user_in.username}>")
     return users.create_user(db=db, user=user_in)
+
+
+@regular_users_router.patch(path="/{username}", response_model=schemas.RegularUser, status_code=status.HTTP_200_OK)
+async def patch_user(username: str,
+                     user_in: schemas.RegularUserPatch,
+                     db: Session = Depends(database.get_db),
+                     user: User = Depends(deps.either_platform_or_admin)):
+    db_user = users.get_user_by_username(db=db, username=username)
+    if not db_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if not users.is_user_updatable(user=db_user):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The target is not a regular user and can not be updated")
+    return users.update_user(db=db, user=db_user, user_in=user_in)
+
+
+@system_users_router.get(path="/", response_model=list[schemas.SystemUser],
+                         description="List users able to use this API, who can be authenticated and assigned "
+                                     "a `Registry Admin` or `Platform` role")
+async def get_system_users(db: Session = Depends(database.get_db),
+                           user: User = Depends(deps.registry_admin_user)):
+    return users.get_all_users(db=db)

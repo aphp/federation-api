@@ -54,7 +54,7 @@ class TestPlatforms:
                                                                       client: TestClient,
                                                                       admin_user_auth_headers: dict):
         # only platform-users allowed to call this endpoint
-        response = client.get(url="/platforms/project-share/", headers=admin_user_auth_headers)
+        response = client.get(url="/platforms/recipients/", headers=admin_user_auth_headers)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_success_listing_platforms_to_share_project_as_platform_user(self,
@@ -62,10 +62,11 @@ class TestPlatforms:
                                                                          platform_user_auth_headers,
                                                                          sample_platforms: List[Platform]):
         # returns all other platforms
-        response = client.get(url="/platforms/project-share/", headers=platform_user_auth_headers)
+        response = client.get(url="/platforms/recipients/", headers=platform_user_auth_headers)
         assert response.status_code == status.HTTP_200_OK
         content = response.json()
         assert len(content) == len(sample_platforms)
+        assert all(k in ('id', 'name') for k in content[0].keys()), "Response items have extra keys"
 
 
     def test_failure_creating_platform_as_platform_user(self,
@@ -90,3 +91,53 @@ class TestPlatforms:
         assert "id" in content
         assert content["user_account"] is not None
         assert len(content["access_keys"]) == 1
+
+
+    def test_success_patch_platform_as_admin_user(self,
+                                                  client: TestClient,
+                                                  admin_user_auth_headers: dict,
+                                                  sample_platform: Platform,
+                                                  db: Session):
+        initial_name = sample_platform.name
+        patch_data = {"name": "New name for platform"}
+        response = client.patch(url=f"/platforms/{sample_platform.id}",
+                                json=patch_data,
+                                headers=admin_user_auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        content = response.json()
+        assert content["name"] != initial_name
+        db.refresh(sample_platform)
+        assert sample_platform.name == patch_data["name"]
+
+
+
+    def test_success_patch_platform_as_platform_user(self,
+                                                     client: TestClient,
+                                                     platform_user: User,
+                                                     platform_user_auth_headers: dict,
+                                                     db: Session):
+        target_platform = platform_user.platform
+        initial_name = target_platform.name
+        patch_data = {"name": "New name for platform"}
+        response = client.patch(url=f"/platforms/{target_platform.id}",
+                                json=patch_data,
+                                headers=platform_user_auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        content = response.json()
+        assert content["name"] != initial_name
+        db.refresh(target_platform)
+        assert target_platform.name == patch_data["name"]
+
+
+    def test_error_patch_not_owned_platform_as_platform_user(self,
+                                                             client: TestClient,
+                                                             platform_user: User,
+                                                             platform_user_auth_headers: dict,
+                                                             sample_platform: Platform):
+        assert platform_user.platform_id != sample_platform.id
+        patch_data = {"name": "New name for platform"}
+        response = client.patch(url=f"/platforms/{sample_platform.id}",
+                                json=patch_data,
+                                headers=platform_user_auth_headers)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        content = response.json()

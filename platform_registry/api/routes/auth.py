@@ -13,7 +13,7 @@ from platform_registry.services import users
 router = APIRouter()
 
 
-@router.post("/auth/login", response_model=LoginResponse)
+@router.post(path="/auth/login", response_model=LoginResponse)
 async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
                 db: Session = Depends(database.get_db)):
     user = authenticate_user(db, form_data.username, form_data.password)

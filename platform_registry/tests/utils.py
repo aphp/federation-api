@@ -44,7 +44,7 @@ def setup_new_platform(db: Session, name: str) -> schemas.Platform:
     return platforms.setup_platform(db=db, platform=schemas.PlatformCreate(name=name))
 
 
-def create_admin_user(db: Session) -> Tuple[schemas.User, str]:
+def create_admin_user(db: Session) -> Tuple[schemas.RegularUser, str]:
     admin_role = get_or_create_admin_role(db)
     user = users.create_admin_user(db=db, role=admin_role)
     return user, ADMIN_PASSWORD
@@ -57,7 +57,7 @@ def create_platform_user(db: Session) ->  Tuple[schemas.PlatformUser, str]:
     return platform.user_account[0], password
 
 
-def get_main_platform_user(db: Session) -> schemas.User:
+def get_main_platform_user(db: Session) -> schemas.SystemUser:
     return users.get_user_by_username(db=db, username="platform")
 
 

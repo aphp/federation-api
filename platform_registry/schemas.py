@@ -34,16 +34,37 @@ class Role(RoleBase):
 
 class UserBase(BaseModel):
     username: str
-    email: EmailStr
+    email: Optional[EmailStr] = None
     expiration_date: Optional[datetime] = datetime.now() + timedelta(days=30)
 
+
+class RegularUser(UserBase):
+    id: str
+    firstname: str
+    lastname: str
 
 class RegularUserCreate(UserBase):
     firstname: str
     lastname: str
 
 
-class SystemUser(BaseModel):
+class RegularUserPatch(BaseModel):
+    firstname: Optional[str] = None
+    lastname: Optional[str] = None
+    email: Optional[EmailStr] = None
+    expiration_date: Optional[datetime] = None
+
+
+class SystemUser(UserBase):
+    id: str
+    role: Optional[Role] = None
+    last_login: Optional[datetime] = None
+
+    class ConfigDict:
+        from_attributes = True
+
+
+class SystemUserCreate(BaseModel):
     """ represents users who can be authenticated in the system:
         i.e: Registry admins + users of type 'Platform'
     """
@@ -51,21 +72,12 @@ class SystemUser(BaseModel):
     hashed_password: str
 
 
-class AdminUserCreate(RegularUserCreate, SystemUser):
+class AdminUserCreateCreate(RegularUserCreate, SystemUserCreate):
     pass
 
 
-class PlatformUserCreate(UserBase, SystemUser):
+class PlatformUserCreateCreate(UserBase, SystemUserCreate):
     platform_id: STR_UUID
-
-
-class User(UserBase):
-    id: str
-    role: Optional[Role] = None
-    last_login: Optional[datetime]
-
-    class ConfigDict:
-        from_attributes = True
 
 
 class PlatformUser(UserBase):
@@ -85,8 +97,9 @@ class RegulatoryFrameworkCreate(RegulatoryFrameworkBase):
     pass
 
 
-class RegulatoryFrameworkPatch(RegulatoryFrameworkBase):
-    pass
+class RegulatoryFrameworkPatch(BaseModel):
+    name: Optional[str]
+    description_url: Optional[str]
 
 
 class RegulatoryFramework(RegulatoryFrameworkBase):
@@ -147,11 +160,15 @@ class ProjectPatch(ProjectBase):
 
 class RecipientPlatformWithPermission(BaseModel):
     platform_id: STR_UUID
-    write: bool
+    readonly: Optional[bool] = True
 
 
 class ProjectShare(BaseModel):
     recipient_platform_ids: List[RecipientPlatformWithPermission]
+
+
+class ProjectShareResult(BaseModel):
+    success: bool
 
 
 class Project(ProjectBase):
@@ -162,16 +179,16 @@ class Project(ProjectBase):
 
 
 class AccessKeyBase(BaseModel):
-    name: Optional[str]
+    label: Optional[str]
     start_datetime: Optional[datetime]
     end_datetime: Optional[datetime]
 
     @field_serializer('start_datetime')
-    def serialize_start_datetime(self, start_datetime: datetime, _info) -> str:
+    def serialize_start_datetime(self, start_datetime: datetime) -> str:
         return datetime.strftime(start_datetime, "%m/%d/%Y, %H:%M:%S")
 
     @field_serializer('end_datetime')
-    def serialize_end_datetime(self, end_datetime: datetime, _info) -> str:
+    def serialize_end_datetime(self, end_datetime: datetime) -> str:
         return datetime.strftime(end_datetime, "%m/%d/%Y, %H:%M:%S")
 
 
@@ -200,6 +217,10 @@ class PlatformCreate(PlatformBase):
     pass
 
 
+class PlatformPatch(PlatformBase):
+    pass
+
+
 class PlatformRecipient(PlatformBase):
     id: str
 
@@ -215,7 +236,7 @@ class Platform(PlatformBase):
         from_attributes = True
 
     @field_serializer('user_account')
-    def serialize_user_account(self, user_account: List[PlatformUser], _info) -> str:
+    def serialize_user_account(self, user_account: List[PlatformUser]) -> str:
         user_account = user_account and user_account[0] or None
         return user_account and f"{user_account.username}[{user_account.id}]" or "--"
 
@@ -225,14 +246,14 @@ class ProjectWithDetails(Project):
     allowed_platforms: List[Platform]
     regulatory_frameworks: List[RegulatoryFramework]
     involved_entities: List[Entity]
-    involved_users: List[User]
+    involved_users: List[RegularUser]
 
     @field_serializer('owner_platform')
-    def serialize_owner_platform(self, owner_platform: Platform, _info) -> str:
+    def serialize_owner_platform(self, owner_platform: Platform) -> str:
         return owner_platform.name
 
     @field_serializer('allowed_platforms')
-    def serialize_allowed_platforms(self, allowed_platforms: List[Platform], _info) -> List[str]:
+    def serialize_allowed_platforms(self, allowed_platforms: List[Platform]) -> List[str]:
         return [p.name for p in allowed_platforms]
 
 
@@ -241,11 +262,11 @@ class LoginResponse(BaseModel):
     username: str
     firstname: Optional[str] = None
     lastname: Optional[str] = None
-    email: EmailStr
+    email: Optional[EmailStr] = None
     last_login: Optional[datetime]
-    role: Optional[str]
+    role: Optional[str] = None
     is_admin: bool
 
     @field_serializer('last_login')
-    def serialize_last_login(self, last_login: datetime, _info) -> str:
+    def serialize_last_login(self, last_login: datetime) -> str:
         return datetime.strftime(last_login, "%m/%d/%Y, %H:%M")

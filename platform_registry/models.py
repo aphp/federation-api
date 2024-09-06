@@ -105,7 +105,7 @@ class Entity(CommonColumnsMixin, Base):
 class AccessKey(CommonColumnsMixin, Base):
     __tablename__ = "access_key"
 
-    name = Column(String, index=True, nullable=False, unique=True)
+    label = Column(String, index=True, nullable=False, unique=True)
     key = Column(String, nullable=False, unique=True)
     start_datetime = Column(DateTime, nullable=False)
     end_datetime = Column(DateTime, nullable=False)
@@ -134,5 +134,5 @@ class PlatformsSharedProjectsRel(CommonColumnsMixin, Base):
 
     platform_id = Column(UUID(as_uuid=False), ForeignKey("platform.id"), nullable=False, index=True)
     project_id = Column(UUID(as_uuid=False), ForeignKey("project.id"), nullable=False, index=True)
-    write = Column(Boolean, nullable=False, default=False)
+    readonly = Column(Boolean, nullable=False, default=True)
 

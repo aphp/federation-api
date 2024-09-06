@@ -36,8 +36,8 @@ def get_platform_current_valid_key(db: Session, platform_id: str):
 def create_access_key(db: Session, access_key: AccessKeyCreate):
     now = datetime.now()
     year_month = now.strftime('%Y%m')
-    key_name = f"{access_key.platform_id[:8]}_{year_month}_key"
-    key = AccessKey(name=key_name,
+    key_name = f"Key_{year_month}_{access_key.platform_id[:8]}"
+    key = AccessKey(label=key_name,
                     key=generate_key(),
                     start_datetime=now,
                     end_datetime=now + timedelta(days=settings.ACCESS_KEY_LIFESPAN_DAYS),

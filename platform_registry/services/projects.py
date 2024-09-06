@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.operators import or_, and_
 
-from platform_registry.models import Project, ProjectsRegulatoryFrameworksRel, PlatformsSharedProjectsRel
-from platform_registry.schemas import User, ProjectCreate, ProjectPatch, ProjectShare
+from platform_registry.models import User, Project, ProjectsRegulatoryFrameworksRel, PlatformsSharedProjectsRel
+from platform_registry.schemas import ProjectCreate, ProjectPatch, ProjectShare, ProjectShareResult
 
 
 def get_projects(db: Session, user: User):
@@ -68,7 +68,7 @@ def share_project(db: Session, project: Project, share_with: ProjectShare):
             db.add(shared_project)
             db.commit()
             db.refresh(shared_project)
-    return True
+    return ProjectShareResult(success=True)
 
 
 def platform_can_access_project(platform, target_project) -> bool:
@@ -80,7 +80,7 @@ def platform_can_edit_project(db: Session, platform, target_project) -> bool:
     shared_projects_rels = db.query(PlatformsSharedProjectsRel)\
                              .filter(and_(and_(PlatformsSharedProjectsRel.project_id == target_project.id,
                                                PlatformsSharedProjectsRel.platform_id == platform.id),
-                                          PlatformsSharedProjectsRel.write))\
+                                          PlatformsSharedProjectsRel.readonly))\
                              .all()
     writable_projects = [rel.project_id for rel in shared_projects_rels]
     return platform.id == target_project.owner_platform_id or target_project.id in writable_projects

@@ -10,6 +10,7 @@ lint.fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W",
                 "COM", "DJ", "DTZ", "EM", "ERA", "EXE", "FBT","ICN", "INP", "ISC", "NPY", "PD", "PGH",
                 "PIE", "PL", "PT", "PTH", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "TRY", "UP", "YTT"]
 lint.unfixable = []
+lint.ignore= ["E711"]
 
 line-length = 150
 

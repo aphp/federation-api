@@ -96,7 +96,6 @@ class TestAccessKeys:
                                headers=admin_user_auth_headers)
         assert response.status_code == status.HTTP_201_CREATED
         content = response.json()
-        assert content["name"][:8] == key_data["platform_id"][:8]
         assert "id" in content
         assert "key" in content
         assert "start_datetime" in content

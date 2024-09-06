@@ -3,8 +3,8 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
 from platform_registry.core.security import get_password_hash
-from platform_registry.models import Platform
-from platform_registry.schemas import User, PlatformCreate, PlatformUserCreate, AccessKeyCreate
+from platform_registry.models import Platform, User
+from platform_registry.schemas import PlatformCreate, PlatformUserCreateCreate, AccessKeyCreate, PlatformPatch
 from platform_registry.services import roles, users
 from platform_registry.services.access_keys import create_access_key
 
@@ -36,12 +36,20 @@ def setup_platform(db: Session, platform: PlatformCreate):
     ak = create_access_key(db=db, access_key=AccessKeyCreate(platform_id=new_platform.id))
     platform_role = roles.get_platform_role(db=db)
     username = platform.name.replace(' ', '-').lower()
-    platform_user = PlatformUserCreate(username=username,
-                                       email=f"{username}@registry.fr",
-                                       expiration_date=datetime.now() + timedelta(days=365),
-                                       hashed_password=get_password_hash(ak.key),
-                                       role_id=platform_role.id,
-                                       platform_id=new_platform.id)
+    platform_user = PlatformUserCreateCreate(username=username,
+                                             expiration_date=datetime.now() + timedelta(days=365),
+                                             hashed_password=get_password_hash(ak.key),
+                                             role_id=platform_role.id,
+                                             platform_id=new_platform.id)
     users.create_user(db=db, user=platform_user)
     return new_platform
 
+
+def update_platform(db: Session, platform: Platform, platform_in: PlatformPatch):
+    platform_data = platform_in.model_dump(exclude_unset=True,
+                                           exclude_none=True)
+    for k, v in platform_data.items():
+        setattr(platform, k, v)
+    db.commit()
+    db.refresh(platform)
+    return platform

@@ -211,17 +211,24 @@ class TestProjects:
                                                      client: TestClient,
                                                      platform_user_auth_headers: dict,
                                                      sample_projects: List[Project],
-                                                     sample_platform: Platform):
+                                                     sample_platform: Platform,
+                                                     db: Session):
+        recipient_platform = sample_platform
         target_project = sample_projects[2]
+        assert target_project.owner_platform_id != recipient_platform.id
         initial_allowed_platforms = target_project.allowed_platforms
 
-        share_data = {"recipient_platform_ids": [{"platform_id": sample_platform.id,
-                                                  "write": True
+        share_data = {"recipient_platform_ids": [{"platform_id": recipient_platform.id,
+                                                  "readonly": True
                                                   }]
                       }
         response = client.post(url=f"/projects/{target_project.id}/share/",
                                json=share_data,
                                headers=platform_user_auth_headers)
         assert response.status_code == status.HTTP_200_OK
-        assert target_project.allowed_platforms == initial_allowed_platforms
+        content = response.json()
+        assert content["success"] == True
+        db.refresh(target_project)
+        assert target_project.allowed_platforms != initial_allowed_platforms
+        assert recipient_platform in target_project.allowed_platforms
 
