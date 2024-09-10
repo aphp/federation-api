@@ -59,15 +59,3 @@ def either_platform_or_admin(user: models.User = Depends(current_active_user)):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Not enough permissions: requires a Platform or Registry Administrator account")
     return user
-
-
-def get_regulatory_frameworks_reader(user: models.User = Depends(current_active_user)):
-    if not (user.role.is_platform or user.role.is_registry_admin):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Not enough permissions: requires a Platform or Registry Administrator account")
-    return user
-
-
-def regulatory_frameworks_manager(user: models.User = Depends(registry_admin_user)):
-    return user
-

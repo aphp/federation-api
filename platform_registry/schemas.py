@@ -1,5 +1,6 @@
 import uuid
 from datetime import date, datetime, timedelta
+
 from pydantic import BaseModel, EmailStr, field_serializer, AfterValidator
 from typing import Optional, List, Annotated
 
@@ -25,7 +26,6 @@ class Role(RoleBase):
     manage_access_keys: bool
     manage_regulatory_frameworks: bool
     manage_projects: bool
-    manage_projects_membership: bool
     manage_entities: bool
 
     class ConfigDict:
@@ -38,6 +38,13 @@ class UserBase(BaseModel):
     expiration_date: Optional[datetime] = datetime.now() + timedelta(days=30)
 
 
+class UserMinimized(BaseModel):
+    firstname: str
+    lastname: str
+    username: str
+    email: Optional[EmailStr] = None
+
+
 class RegularUser(UserBase):
     id: str
     firstname: str
@@ -47,13 +54,11 @@ class RegularUserCreate(UserBase):
     firstname: str
     lastname: str
 
-
 class RegularUserPatch(BaseModel):
     firstname: Optional[str] = None
     lastname: Optional[str] = None
     email: Optional[EmailStr] = None
     expiration_date: Optional[datetime] = None
-
 
 class SystemUser(UserBase):
     id: str
@@ -149,13 +154,17 @@ class ProjectBase(BaseModel):
 
 
 class ProjectCreate(ProjectBase):
-    framework_ids: List[str]
+    framework_ids: Optional[List[str]] = []
+    user_ids: Optional[List[str]] = []
+    entity_ids: Optional[List[str]] = []
 
 
 class ProjectPatch(ProjectBase):
     code: Optional[str] = ""
     name: Optional[str] = ""
-    framework_ids: Optional[List[str]] = []
+    framework_ids: Optional[List[str]] = None
+    user_ids: Optional[List[str]] = None
+    entity_ids: Optional[List[str]] = None
 
 
 class RecipientPlatformWithPermission(BaseModel):
@@ -245,8 +254,8 @@ class ProjectWithDetails(Project):
     owner_platform: Platform
     allowed_platforms: List[Platform]
     regulatory_frameworks: List[RegulatoryFramework]
-    involved_entities: List[Entity]
-    involved_users: List[RegularUser]
+    involved_entities: List[EntityBase]
+    involved_users: List[UserMinimized]
 
     @field_serializer('owner_platform')
     def serialize_owner_platform(self, owner_platform: Platform) -> str:

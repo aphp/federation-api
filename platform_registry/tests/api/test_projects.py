@@ -5,18 +5,63 @@ from fastapi.testclient import TestClient
 from fastapi import status
 from sqlalchemy.orm import Session
 
-from platform_registry.services import users, regulatory_frameworks, access_keys
-from platform_registry.models import User, Project, PlatformsSharedProjectsRel, ProjectsRegulatoryFrameworksRel, Platform
-from platform_registry.schemas import RegularUserCreate, RegulatoryFramework, RegulatoryFrameworkCreate
-from platform_registry.tests.utils import create_project, setup_new_platform, random_lower_string, random_email, get_or_create_platform_role
+from platform_registry.services import regulatory_frameworks, access_keys
+from platform_registry.models import User, Project, PlatformsSharedProjectsRel, Platform
+from platform_registry.schemas import RegulatoryFramework, RegulatoryFrameworkCreate, RegularUser, Entity
+from platform_registry.tests.utils import create_project, setup_new_platform, random_lower_string, create_random_entity, create_regular_user
 
 
 @pytest.fixture(scope='class')
-def sample_projects(db: Session, platform_user: User) -> List[Project]:
+def sample_reg_frameworks(db: Session) -> List[RegulatoryFramework]:
+    frameworks = []
+    for i in range(5):
+        framework = regulatory_frameworks.create_regulatory_framework(db,
+                                                                      RegulatoryFrameworkCreate(name=f"RegFramework {i}",
+                                                                                                description_url=f"www.regframework{i}.com"))
+        frameworks.append(framework)
+
+    yield frameworks
+    for f in frameworks:
+        db.delete(f)
+    db.commit()
+
+
+@pytest.fixture(scope='class')
+def sample_users(db: Session) -> List[Entity]:
+    users = []
+    for i in range(5):
+        users.append(create_regular_user(db=db))
+    yield users
+    for u in users:
+        db.delete(u)
+    db.commit()
+
+
+@pytest.fixture(scope='class')
+def sample_entities(db: Session) -> List[Entity]:
+    entities = []
+    for i in range(5):
+        entities.append(create_random_entity(db=db, name=random_lower_string(l=10)))
+    yield entities
+    for e in entities:
+        db.delete(e)
+    db.commit()
+
+
+@pytest.fixture(scope='class')
+def sample_projects(db: Session, platform_user: User,
+                    sample_reg_frameworks: List[RegulatoryFramework],
+                    sample_users: List[RegularUser],
+                    sample_entities: List[Entity]) -> List[Project]:
     projects = []
     n = 5
     for i in range(n):
-        projects.append(create_project(db=db, platform_id=platform_user.platform_id))
+        projects.append(create_project(db=db,
+                                       platform_id=platform_user.platform_id,
+                                       framework_ids=[sample_reg_frameworks[0].id],
+                                       user_ids=[sample_users[0].id, sample_users[1].id],
+                                       entity_ids=[sample_entities[0].id, sample_entities[1].id]
+                                       ))
     yield projects
     for p in projects:
         db.delete(p)
@@ -38,21 +83,6 @@ def shared_project(db: Session, platform_user: User) -> Project:
     key = access_keys.get_platform_current_valid_key(db=db, platform_id=new_platform.id)
     db.delete(key)
     db.delete(new_platform)
-    db.commit()
-
-
-@pytest.fixture(scope='function')
-def sample_reg_frameworks(db: Session) -> List[RegulatoryFramework]:
-    frameworks = []
-    framework_01 = RegulatoryFrameworkCreate(name="RegFramework 01", description_url="www.regframework01.com")
-    framework_02 = RegulatoryFrameworkCreate(name="RegFramework 02", description_url="www.regframework02.com")
-    for f in (framework_01, framework_02):
-        framework = regulatory_frameworks.create_regulatory_framework(db, f)
-        frameworks.append(framework)
-
-    yield frameworks
-    for f in frameworks:
-        db.delete(f)
     db.commit()
 
 
@@ -124,10 +154,16 @@ class TestProjects:
     def test_success_create_project_as_platform_user(self,
                                                      client: TestClient,
                                                      platform_user_auth_headers: dict,
-                                                     platform_user: User):
+                                                     platform_user: User,
+                                                     sample_reg_frameworks: List[RegulatoryFramework],
+                                                     sample_users: List[RegularUser],
+                                                     sample_entities: List[Entity],
+                                                     ):
         project_data = {"name": random_lower_string(l=10),
                         "code": random_lower_string(l=5),
-                        "framework_ids": []
+                        "framework_ids": [sample_reg_frameworks[0].id],
+                        "user_ids": [sample_users[0].id, sample_users[1].id],
+                        "entity_ids": [sample_entities[0].id],
                         }
         response = client.post(url="/projects/",
                                json=project_data,
@@ -166,22 +202,21 @@ class TestProjects:
                                                      platform_user_auth_headers: dict,
                                                      sample_projects: List[Project],
                                                      sample_reg_frameworks: List[RegulatoryFramework],
+                                                     sample_users: List[RegularUser],
+                                                     sample_entities: List[Entity],
                                                      db: Session):
         target_project = sample_projects[0]
-        proj_frm = ProjectsRegulatoryFrameworksRel(project_id=target_project.id,
-                                                   regulatory_framework_id=sample_reg_frameworks[0].id)
-        db.add(proj_frm)
-        db.commit()
-
-        assert len(target_project.regulatory_frameworks) == 1
-
         initial_name = target_project.name
         initial_code = target_project.code
-        initial_frameworks = [f.name for f in target_project.regulatory_frameworks]   # framework_01
+        initial_frameworks = [f.name for f in target_project.regulatory_frameworks]
+        initial_users = [u.username for u in target_project.involved_users]
+        initial_entities = [e.name for e in target_project.involved_entities]
 
         patch_data = {"name": f"{target_project.name}__updated",
                       "code": f"{target_project.code}__updated",
-                      "framework_ids": [sample_reg_frameworks[1].id],   # framework_02
+                      "framework_ids": [sample_reg_frameworks[-1].id, sample_reg_frameworks[-2].id],
+                      "user_ids": [sample_users[-1].id, sample_users[-2].id],
+                      "entity_ids": [sample_entities[-1].id, sample_entities[-2].id],
                       }
         response = client.patch(url=f"/projects/{target_project.id}",
                                 json=patch_data,
@@ -190,8 +225,17 @@ class TestProjects:
         content = response.json()
         assert content["name"] != initial_name
         assert content["code"] != initial_code
-        assert content["regulatory_frameworks"] != initial_frameworks
-        assert len(content["regulatory_frameworks"]) == 1
+        resp_frameworks = [f["name"] for f in content["regulatory_frameworks"]]
+        assert len(resp_frameworks) == 2
+        assert all(f not in initial_frameworks for f in resp_frameworks)
+
+        resp_users = [f["username"] for f in content["involved_users"]]
+        assert len(resp_users) == 2
+        assert all(f not in initial_users for f in resp_users)
+
+        resp_entities = [f["name"] for f in content["involved_entities"]]
+        assert len(resp_entities) == 2
+        assert all(f not in initial_entities for f in resp_entities)
 
     def test_error_share_project_not_owned(self,
                                            client: TestClient,

@@ -12,7 +12,8 @@ frameworks_router = APIRouter(prefix="/frameworks")
 
 
 @router.get(path="/", response_model=list[schemas.ProjectWithDetails],
-            summary="List projects owned by the platform and those shared with it.")
+            summary="List owned projects and those shared by other platforms "
+                    "with details over involved users and entities")
 async def get_projects(db: Session = Depends(database.get_db),
                        user: User = Depends(deps.either_platform_or_admin)):
     return projects.get_projects(db, user=user)
@@ -33,6 +34,7 @@ async def get_project(project_id: str,
 
 
 @router.post(path="/", response_model=schemas.ProjectWithDetails, status_code=status.HTTP_201_CREATED,
+             summary="Create a new project and optionally assign users and entities",
              description="As a **Platform User**, the project being created will be auto-attached to your platform.")
 async def create_project(project: schemas.ProjectCreate,
                          db: Session = Depends(database.get_db),
@@ -40,7 +42,8 @@ async def create_project(project: schemas.ProjectCreate,
     return projects.create_project(db=db, project=project, platform_id=user.platform_id)
 
 
-@router.patch(path="/{project_id}", response_model=schemas.ProjectWithDetails)
+@router.patch(path="/{project_id}", response_model=schemas.ProjectWithDetails,
+              summary="Update project details, related regulatory frameworks, users and entities",)
 async def patch_project(project_id: str,
                         project_in: schemas.ProjectPatch,
                         db: Session = Depends(database.get_db),

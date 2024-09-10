@@ -1,8 +1,9 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.operators import or_, and_
 
-from platform_registry.models import User, Project, ProjectsRegulatoryFrameworksRel, PlatformsSharedProjectsRel
+from platform_registry.models import User, Project, PlatformsSharedProjectsRel
 from platform_registry.schemas import ProjectCreate, ProjectPatch, ProjectShare, ProjectShareResult
+from platform_registry.services import regulatory_frameworks, users, entities
 
 
 def get_projects(db: Session, user: User):
@@ -18,45 +19,34 @@ def get_project_by_id(db: Session, project_id: str):
     return db.query(Project).filter(Project.id == project_id).first()
 
 
+def build_objects(db, project_data) -> None:
+    framework_ids = project_data.pop("framework_ids", None)
+    if framework_ids:
+        project_data["regulatory_frameworks"] = regulatory_frameworks.get_regulatory_frameworks(db=db, ids=framework_ids)
+    user_ids = project_data.pop("user_ids", None)
+    if user_ids:
+        project_data["involved_users"] = users.get_regular_users(db=db, ids=user_ids)
+    entity_ids = project_data.pop("entity_ids", None)
+    if entity_ids:
+        project_data["involved_entities"] = entities.get_entities(db=db, ids=entity_ids)
+
+
 def create_project(db: Session, project: ProjectCreate, platform_id: str):
-    new_project = Project(**project.model_dump(exclude={"framework_ids"}),
-                          owner_platform_id=platform_id)
+    project_data = project.model_dump(exclude_unset=True)
+    build_objects(db=db, project_data=project_data)
+    new_project = Project(**project_data, owner_platform_id=platform_id)
     db.add(new_project)
     db.commit()
-    for framework_id in project.framework_ids:
-        proj_framework = ProjectsRegulatoryFrameworksRel(project_id=new_project.id,
-                                                         regulatory_framework_id=framework_id)
-        db.add(proj_framework)
-    db.commit()
-    db.refresh(new_project)
     return new_project
 
 
 def update_project(db: Session, project: Project, project_in: ProjectPatch):
-    project_data = project_in.model_dump(exclude={"framework_ids"})
+    project_data = project_in.model_dump(exclude_unset=True)
+    build_objects(db, project_data)
     for key, value in project_data.items():
         setattr(project, key, value)
     db.commit()
     db.refresh(project)
-
-    actual_framework_ids = [f.id for f in project.regulatory_frameworks]
-    new_framework_ids = [fid for fid in project_in.framework_ids if fid not in actual_framework_ids]
-    removable_framework_ids = [fid for fid in actual_framework_ids if fid not in project_in.framework_ids]
-
-    proj_frm_to_remove = db.query(ProjectsRegulatoryFrameworksRel)\
-                           .filter(and_(ProjectsRegulatoryFrameworksRel.project_id == project.id,
-                                        ProjectsRegulatoryFrameworksRel.regulatory_framework_id.in_(removable_framework_ids)))\
-                           .all()
-    for pf in proj_frm_to_remove:
-        db.delete(pf)
-
-    for f_id in new_framework_ids:
-        proj_frm = ProjectsRegulatoryFrameworksRel(project_id=project.id,
-                                                   regulatory_framework_id=f_id)
-        db.add(proj_frm)
-        db.commit()
-
-    db.commit()
     return project
 
 
@@ -80,7 +70,7 @@ def platform_can_edit_project(db: Session, platform, target_project) -> bool:
     shared_projects_rels = db.query(PlatformsSharedProjectsRel)\
                              .filter(and_(and_(PlatformsSharedProjectsRel.project_id == target_project.id,
                                                PlatformsSharedProjectsRel.platform_id == platform.id),
-                                          PlatformsSharedProjectsRel.readonly))\
+                                          not PlatformsSharedProjectsRel.readonly))\
                              .all()
     writable_projects = [rel.project_id for rel in shared_projects_rels]
     return platform.id == target_project.owner_platform_id or target_project.id in writable_projects

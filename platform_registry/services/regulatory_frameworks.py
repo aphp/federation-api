@@ -1,11 +1,16 @@
+from typing import List
+
 from sqlalchemy.orm import Session
 
 from platform_registry.models import RegulatoryFramework
 from platform_registry.schemas import RegulatoryFrameworkCreate, RegulatoryFrameworkPatch
 
 
-def get_regulatory_frameworks(db: Session):
-    return db.query(RegulatoryFramework).all()
+def get_regulatory_frameworks(db: Session, ids: List[str] = None):
+    frameworks_filter = []
+    if ids:
+        frameworks_filter.append(RegulatoryFramework.id.in_(ids))
+    return db.query(RegulatoryFramework).filter(*frameworks_filter).all()
 
 
 def get_regulatory_framework(db: Session, framework_id: str):

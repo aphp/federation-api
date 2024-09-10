@@ -1,3 +1,5 @@
+from typing import List
+
 from sqlalchemy.orm import Session
 
 from platform_registry.models import EntityType, Entity
@@ -35,5 +37,8 @@ def create_entity(db: Session, entity: EntityCreate):
     return db_entity
 
 
-def get_entities(db: Session):
-    return db.query(Entity).all()
+def get_entities(db: Session, ids: List[str] = None):
+    entities_filter = []
+    if ids:
+        entities_filter.append(Entity.id.in_(ids))
+    return db.query(Entity).filter(*entities_filter).all()

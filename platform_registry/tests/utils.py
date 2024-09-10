@@ -6,6 +6,7 @@ from typing import Tuple, List
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from platform_registry.schemas import Entity
 from platform_registry.services import users, roles, entities, platforms, access_keys, projects
 from platform_registry import schemas
 from platform_registry.services.users import ADMIN_PASSWORD
@@ -50,6 +51,14 @@ def create_admin_user(db: Session) -> Tuple[schemas.RegularUser, str]:
     return user, ADMIN_PASSWORD
 
 
+def create_regular_user(db: Session) -> schemas.RegularUser:
+    return users.create_user(db=db,
+                             user=schemas.RegularUserCreate(username=random_lower_string(l=5),
+                                                            firstname=random_lower_string(l=10),
+                                                            lastname=random_lower_string(l=10),
+                                                            email=random_email()))
+
+
 def create_platform_user(db: Session) ->  Tuple[schemas.PlatformUser, str]:
     _ = get_or_create_platform_role(db=db)
     platform = setup_new_platform(db=db, name="Platform")
@@ -70,11 +79,11 @@ def create_random_entity_type(name: str, db: Session) -> schemas.EntityType:
     return entities.create_entity_type(db=db, entity_type=type_in)
 
 
-def create_random_entity(name: str, db: Session) -> None:
+def create_random_entity(name: str, db: Session) -> Entity:
     entity_type_name = f"type_{name}"
     entity_type = create_random_entity_type(name=entity_type_name, db=db)
     entity_in = schemas.EntityCreate(name=name, entity_type_id=entity_type.id)
-    entities.create_entity(db=db, entity=entity_in)
+    return entities.create_entity(db=db, entity=entity_in)
 
 
 def get_authorization_headers(client: TestClient, db: Session, for_admin: bool = False) -> dict[str, str]:
@@ -99,11 +108,17 @@ def create_access_key(db: Session, platform_id: str):
     return access_keys.create_access_key(db=db, access_key=key)
 
 
-def create_project(db: Session, platform_id: str) -> schemas.Project:
+def create_project(db: Session,
+                   platform_id: str,
+                   framework_ids: List[str] = None,
+                   user_ids: List[str] = None,
+                   entity_ids: List[str] = None) -> schemas.Project:
     project_in = schemas.ProjectCreate(name=random_lower_string(l=10),
-                               code=random_lower_string(l=5),
-                               description="some project description",
-                               start_date=date.today(),
-                               end_date=date.today() + timedelta(days=30),
-                               framework_ids=[])
+                                       code=random_lower_string(l=5),
+                                       description="some project description",
+                                       start_date=date.today(),
+                                       end_date=date.today() + timedelta(days=30),
+                                       framework_ids=framework_ids,
+                                       user_ids=user_ids,
+                                       entity_ids=entity_ids)
     return projects.create_project(db, project_in, platform_id)

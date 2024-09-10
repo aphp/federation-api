@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import Union
+from typing import Union, List
 
 from sqlalchemy.orm import Session
 
@@ -23,9 +23,11 @@ def get_all_users(db: Session):
     return db.query(User).all()
 
 
-def get_regular_users(db: Session):
-    # /!\ regular user must have no role attached to them
-    return db.query(User).filter(User.role_id == None).all()
+def get_regular_users(db: Session, ids: List[str] = None):
+    users_filter = []
+    if ids:
+        users_filter.append(User.id.in_(ids))
+    return db.query(User).filter(User.role_id == None).filter(*users_filter).all()
 
 
 def get_platform_accounts_users(db: Session):

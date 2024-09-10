@@ -9,16 +9,14 @@ DEFAULT_REGISTRY_ADMIN_ROLE_PROPS: dict[str, bool] = dict(manage_users=True,
                                                           manage_regulatory_frameworks=True,
                                                           manage_access_keys=True,
                                                           manage_platforms=True,
-                                                          manage_projects=False,
-                                                          manage_projects_membership=False)
+                                                          manage_projects=False)
 DEFAULT_PLATFORM_ROLE_PROPS: dict[str, bool] = dict(manage_users=False,
                                                     manage_roles=False,
                                                     manage_entities=False,
                                                     manage_regulatory_frameworks=False,
                                                     manage_access_keys=True,
                                                     manage_platforms=True,
-                                                    manage_projects=True,
-                                                    manage_projects_membership=True)
+                                                    manage_projects=True)
 
 
 def get_role_by_id(db: Session, role_id: str):
