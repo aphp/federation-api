@@ -25,12 +25,15 @@ jobs:
           enable-cache: true
 
       - name: Install Python 3.12
-        run: |
-          uv python install 3.12
-          uv venv venv && source venv/bin/activate
+        run: uv python install 3.12
 
       - name: Install Ruff/Safety
-        run: uv pip install ruff safety
+        run: |
+          uv venv venv
+          echo $(pwd)
+          echo $(ls .)
+          source venv/bin/activate
+          uv pip install ruff safety
       - name: Run linter
         run: ruff check .
       - name: Run safety check
