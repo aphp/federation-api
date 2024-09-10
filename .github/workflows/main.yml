@@ -25,7 +25,9 @@ jobs:
           enable-cache: true
 
       - name: Install Python 3.12
-        run: uv python install 3.12
+        run: |
+          uv python install 3.12
+          uv venv venv
 
       - name: Install Ruff/Safety
         run: uv pip install ruff safety
