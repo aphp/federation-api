@@ -25,18 +25,17 @@ jobs:
           enable-cache: true
 
       - name: Install Python 3.12
-        run: |
-          uv python install 3.12
-          uv venv venv
+        run: uv python install 3.12
 
       - name: Install Ruff/Safety
-        run: uv pip install ruff safety
+        run: uv pip install --system ruff safety
       - name: Run linter
         run: ruff check .
       - name: Run safety check
         run: safety check -i 70612
 
   test:
+    needs: lint
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.retrieve_version.outputs.version }}
