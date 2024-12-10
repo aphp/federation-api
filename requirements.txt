@@ -10,7 +10,7 @@ psycopg[binary]==3.2.1
 pydantic[email]>=2.7.0
 pydantic-settings==2.3.4
 pyjwt[pycryptodome]==2.8.0
-python-multipart==0.0.9
+python-multipart==0.0.18
 pytest==8.3.1
 python-dateutil==2.8.2
 python-dotenv==1.0.1
